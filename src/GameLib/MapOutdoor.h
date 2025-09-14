@@ -100,7 +100,7 @@ class CMapOutdoor : public CMapBase
 
 		bool			LoadSetting(const char * c_szFileName);
 
-		void			ApplyLight(DWORD dwVersion, const D3DLIGHT9& c_rkLight);
+		void			ApplyLight(uintptr_t dwVersion, const D3DLIGHT9& c_rkLight);
 		void			SetEnvironmentScreenFilter();
 		void			SetEnvironmentSkyBox();
 		void			SetEnvironmentLensFlare();
@@ -249,8 +249,8 @@ class CMapOutdoor : public CMapBase
 		const long		GetViewRadius()			{ return m_lViewRadius;		}
 		const float		GetHeightScale()		{ return m_fHeightScale;	}
 
-		const TOutdoorMapCoordinate & GetEntryPoint(const std::string & c_rstrEntryPointName) const;
-		void SetEntryPoint(const std::string & c_rstrEntryPointName, const TOutdoorMapCoordinate & c_rOutdoorMapCoordinate);
+		// const TOutdoorMapCoordinate & GetEntryPoint(const std::string & c_rstrEntryPointName) const;
+		// void SetEntryPoint(const std::string & c_rstrEntryPointName, const TOutdoorMapCoordinate & c_rOutdoorMapCoordinate);
 		const TOutdoorMapCoordinate & GetCurCoordinate() { return m_CurCoordinate; }
 		const TOutdoorMapCoordinate & GetPrevCoordinate() { return m_PrevCoordinate; }
 
@@ -265,7 +265,7 @@ class CMapOutdoor : public CMapBase
 		void			__UpdateArea(D3DXVECTOR3& v3Player);
 		void			__Game_UpdateArea(D3DXVECTOR3& v3Player);
 
-		void			__BuildDynamicSphereInstanceVector();
+		// void			__BuildDynamicSphereInstanceVector();
 
 		void			__CollectShadowReceiver(D3DXVECTOR3& v3Target, D3DXVECTOR3& v3Light);
 		void			__CollectCollisionPCBlocker(D3DXVECTOR3& v3Eye, D3DXVECTOR3& v3Target, float fDistance);
@@ -296,9 +296,9 @@ class CMapOutdoor : public CMapBase
 		bool		isAttrOn(int iX, int iY, BYTE byAttr);
 		bool		GetAttr(int iX, int iY, BYTE * pbyAttr);
 
-		void		SetMaterialDiffuse(float fr, float fg, float fb);
-		void		SetMaterialAmbient(float fr, float fg, float fb);
-		void		SetTerrainMaterial(const PR_MATERIAL * pMaterial);
+		// void		SetMaterialDiffuse(float fr, float fg, float fb);
+		// void		SetMaterialAmbient(float fr, float fg, float fb);
+		// void		SetTerrainMaterial(const PR_MATERIAL * pMaterial);
 
 		bool		GetTerrainNum(float fx, float fy, BYTE * pbyTerrainNum);
 		bool		GetTerrainNumFromCoord(WORD wCoordX, WORD wCoordY, BYTE * pbyTerrainNum);

@@ -428,16 +428,36 @@ bool CSpeedTreeWrapper::LoadTree(const char * pszSptFile, const BYTE * c_pbBlock
 		// query textures
 		m_pTextureInfo = new CSpeedTreeRT::STextures;
 		m_pSpeedTree->GetTextures(*m_pTextureInfo);
-		
+
 		// load branch textures
-		LoadTexture((CFileNameHelper::GetPath(string(pszSptFile)) + CFileNameHelper::NoExtension(string(m_pTextureInfo->m_pBranchTextureFilename)) + ".dds").c_str(), m_BranchImageInstance);
+		std::string str_spt_file(pszSptFile);
+		std::string strPath = CFileNameHelper::GetPath(str_spt_file);
+
+		std::string branch_filename(m_pTextureInfo->m_pBranchTextureFilename);
+		std::string strNoExt = CFileNameHelper::NoExtension(branch_filename);
+
+		std::string strFinalPath = strPath + strNoExt + ".dds";
+		
+		LoadTexture(strFinalPath.c_str(), m_BranchImageInstance);
 		
 #ifdef WRAPPER_RENDER_SELF_SHADOWS
 		if (m_pTextureInfo->m_pSelfShadowFilename != NULL)
-			LoadTexture((CFileNameHelper::GetPath(string(pszSptFile)) + CFileNameHelper::NoExtension(string(m_pTextureInfo->m_pSelfShadowFilename)) + ".dds").c_str(), m_ShadowImageInstance);
+		{
+			std::string shadow_filename(m_pTextureInfo->m_pSelfShadowFilename);
+			std::string strNoExt = CFileNameHelper::NoExtension(shadow_filename);
+			std::string strFinalPath = strPath + strNoExt + ".dds";
+
+			LoadTexture(strFinalPath.c_str(), m_ShadowImageInstance);
+		}
 #endif
 		if (m_pTextureInfo->m_pCompositeFilename)
-			LoadTexture((CFileNameHelper::GetPath(string(pszSptFile)) + CFileNameHelper::NoExtension(string(m_pTextureInfo->m_pCompositeFilename)) + ".dds").c_str(), m_CompositeImageInstance);
+		{
+			std::string composite_filename(m_pTextureInfo->m_pCompositeFilename);
+			std::string strNoExtComposite = CFileNameHelper::NoExtension(composite_filename);
+			std::string strFinalPathComposite = strPath + strNoExtComposite + ".dds";
+
+			LoadTexture(strFinalPathComposite.c_str(), m_CompositeImageInstance);
+		}
 		
 		// setup the index and vertex buffers
 		SetupBuffers();

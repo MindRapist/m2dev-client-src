@@ -83,23 +83,23 @@ class CEffectMeshScript : public CEffectElementBase
 	public:
 		typedef struct SMeshData
 		{
-			BYTE byBillboardType;
+			BYTE byBillboardType = 0;
 
-			BOOL bBlendingEnable;
-			BYTE byBlendingSrcType;
-			BYTE byBlendingDestType;
-			BOOL bTextureAlphaEnable;
+			BOOL bBlendingEnable = FALSE;
+			BYTE byBlendingSrcType = 0;
+			BYTE byBlendingDestType = 0;
+			BOOL bTextureAlphaEnable = FALSE;
 
-			BYTE byColorOperationType;
-			D3DXCOLOR ColorFactor;
+			BYTE byColorOperationType = 0;
+			D3DXCOLOR ColorFactor = D3DXCOLOR(0.0f, 0.0f, 0.0f, 0.0f);
 
-			BOOL bTextureAnimationLoopEnable;
-			float fTextureAnimationFrameDelay;
+			BOOL bTextureAnimationLoopEnable = FALSE;
+			float fTextureAnimationFrameDelay = 0.0f;
 
-			DWORD dwTextureAnimationStartFrame;
-			
+			DWORD dwTextureAnimationStartFrame = 0;
+
 			TTimeEventTableFloat TimeEventAlpha;
-			
+
 			SMeshData()
 			{
 				TimeEventAlpha.clear();

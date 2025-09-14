@@ -98,7 +98,10 @@ bool CGuildMarkManager::SaveMarkIndex()
 		fprintf(fp, "%d %d\n", it->first, it->second);
 
 	fclose(fp);
-	sys_log(0, "MarkManager::SaveMarkData: index count %d", m_mapGID_MarkID.size());
+
+	auto map_size = m_mapGID_MarkID.size();
+	sys_log(0, "MarkManager::SaveMarkData: index count %d", map_size);
+
 	return true;
 }
 

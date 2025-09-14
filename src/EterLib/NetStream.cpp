@@ -1,3 +1,5 @@
+#include <sstream>
+
 #include "StdAfx.h"
 #include "NetStream.h"
 //#include "eterCrypt.h"

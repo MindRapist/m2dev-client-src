@@ -128,7 +128,7 @@ void CMapOutdoor::__RenderTerrain_AppendPatch(const D3DXVECTOR3& c_rv3Center, fl
 	m_PatchVector.push_back(std::make_pair(fDistance, lPatchNum));
 }
 
-void CMapOutdoor::ApplyLight(DWORD dwVersion, const D3DLIGHT9& c_rkLight)
+void CMapOutdoor::ApplyLight(uintptr_t dwVersion, const D3DLIGHT9& c_rkLight)
 {
 	m_kSTPD.m_dwLightVersion=dwVersion;
 	STATEMANAGER.SetLight(0, &c_rkLight);

@@ -24,11 +24,11 @@ wchar_t	CIME::m_wText[IMESTR_MAXLEN];
 #define LANG_CHS						MAKELANGID(LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED)
 
 // Chinese Traditional
-#define _CHT_HKL_DAYI					((HKL)0xE0060404)	// DaYi
-#define _CHT_HKL_NEW_PHONETIC			((HKL)0xE0080404)	// New Phonetic
-#define _CHT_HKL_NEW_CHANG_JIE			((HKL)0xE0090404)	// New Chang Jie
-#define _CHT_HKL_NEW_QUICK				((HKL)0xE00A0404)	// New Quick
-#define _CHT_HKL_HK_CANTONESE			((HKL)0xE00B0404)	// Hong Kong Cantonese
+#define _CHT_HKL_DAYI					((uintptr_t)0xE0060404)	// DaYi
+#define _CHT_HKL_NEW_PHONETIC			((uintptr_t)0xE0080404)	// New Phonetic
+#define _CHT_HKL_NEW_CHANG_JIE			((uintptr_t)0xE0090404)	// New Chang Jie
+#define _CHT_HKL_NEW_QUICK				((uintptr_t)0xE00A0404)	// New Quick
+#define _CHT_HKL_HK_CANTONESE			((uintptr_t)0xE00B0404)	// Hong Kong Cantonese
 
 #define CHT_IMEFILENAME1				"TINTLGNT.IME" // New Phonetic
 #define CHT_IMEFILENAME2				"CINTLGNT.IME" // New Chang Jie
@@ -44,10 +44,10 @@ wchar_t	CIME::m_wText[IMESTR_MAXLEN];
 #define IMEID_CHT_VER_VISTA				(LANG_CHT | MAKEIMEVERSION(7, 0))	// All TSF TIP under Cicero UI-less mode: a hack to make GetImeId() return non-zero value
 
 // Chinese Simplized
-#define _CHS_HKL						((HKL)0xE00E0804) // MSPY
-#define _CHS_HKL_QQPINYIN				((HKL)0xE0210804) // QQ PinYin
-#define _CHS_HKL_SOGOU					((HKL)0xE0220804) // Sougou PinYin
-#define _CHS_HKL_GOOGLEPINYIN			((HKL)0xE0230804) // Google PinYin
+#define _CHS_HKL						((uintptr_t)0xE00E0804) // MSPY
+#define _CHS_HKL_QQPINYIN				((HKuintptr_tL)0xE0210804) // QQ PinYin
+#define _CHS_HKL_SOGOU					((uintptr_t)0xE0220804) // Sougou PinYin
+#define _CHS_HKL_GOOGLEPINYIN			((uintptr_t)0xE0230804) // Google PinYin
 
 #define CHS_IMEFILENAME1			    "PINTLGNT.IME"		// MSPY1.5/2/3
 #define CHS_IMEFILENAME2			    "MSSCIPYA.IME"		// MSPY3 for OfficeXP
@@ -756,7 +756,7 @@ void CIME::ChangeInputLanguage()
 void CIME::ChangeInputLanguageWorker()
 {
 	if ( !ms_bUILessMode )
-		ms_iCandListIndexBase = ( ms_hklCurrent == _CHT_HKL_DAYI ) ? 0 : 1;
+		ms_iCandListIndexBase = ( (uintptr_t)ms_hklCurrent == _CHT_HKL_DAYI) ? 0 : 1;
 	SetupImeApi();
 }
 
@@ -1045,7 +1045,7 @@ void CIME::CandidateProcess(HIMC hImc)
 			UINT i;
 			for (i = 0; i < ms_dwCandidateCount; i++)
 			{
-				UINT uLen = lstrlenW((LPWSTR)((DWORD)lpCandidateList + lpCandidateList->dwOffset[i])) + (3 - sizeof(WCHAR));
+				UINT uLen = lstrlenW((LPWSTR)((const char*)lpCandidateList + lpCandidateList->dwOffset[i])) + (3 - sizeof(WCHAR));
 				if (uLen + cChars > maxCandChar)
 				{
 					if (i > ms_dwCandidateSelection)
@@ -1071,7 +1071,7 @@ void CIME::CandidateProcess(HIMC hImc)
 		//printf( "SEL: %d, START: %d, PAGED: %d\n", ms_dwCandidateSelection, iStartOfPage, ms_dwCandidatePageSize );
 	    memset(&ms_wszCandidate, 0, sizeof(ms_wszCandidate));
 	    for(UINT i = iStartOfPage, j = 0; (DWORD)i < lpCandidateList->dwCount && j < ms_dwCandidatePageSize; i++, j++) {
-			wcscpy( ms_wszCandidate[j], (LPWSTR)( (DWORD)lpCandidateList + lpCandidateList->dwOffset[i] ) );
+			wcscpy( ms_wszCandidate[j], (LPWSTR)( (const char*)lpCandidateList + lpCandidateList->dwOffset[i] ) );
 	    }
 
 		// don't display selection in candidate list in case of Korean and old Chinese IME.
@@ -1259,7 +1259,7 @@ DWORD CIME::GetImeId( UINT uIndex )
 		return ms_adwId[uIndex];
 	hklPrev = hkl;
 
-	DWORD dwLang = ((DWORD)hkl & 0xffff);
+	DWORD dwLang = ((uintptr_t)hkl & 0xffff);
 
 	if ( ms_bUILessMode && GETLANG() == LANG_CHT ) {
 		// In case of Vista, artifitial value is returned so that it's not considered as older IME.
@@ -1268,7 +1268,12 @@ DWORD CIME::GetImeId( UINT uIndex )
 		return ms_adwId[0];
 	}
 
-	if (!((ms_hklCurrent == _CHT_HKL_NEW_PHONETIC) || (ms_hklCurrent == _CHT_HKL_NEW_CHANG_JIE) || (ms_hklCurrent == _CHT_HKL_NEW_QUICK) || (ms_hklCurrent == _CHT_HKL_HK_CANTONESE) || (ms_hklCurrent == _CHS_HKL))) {
+	if (!(((uintptr_t)ms_hklCurrent == _CHT_HKL_NEW_PHONETIC) ||
+		((uintptr_t)ms_hklCurrent == _CHT_HKL_NEW_CHANG_JIE) ||
+		((uintptr_t)ms_hklCurrent == _CHT_HKL_NEW_QUICK) ||
+		((uintptr_t)ms_hklCurrent == _CHT_HKL_HK_CANTONESE) ||
+		((uintptr_t)ms_hklCurrent == _CHS_HKL)))
+	{
 		ms_adwId[0] = ms_adwId[1] = 0;
         return 0;
 	}
@@ -1297,7 +1302,7 @@ DWORD CIME::GetImeId( UINT uIndex )
 
     if (dwVerSize)
 	{
-        LPVOID lpVerBuffer = alloca(dwVerSize);
+        LPVOID lpVerBuffer = _malloca(dwVerSize);
 
         if (GetFileVersionInfo(szTmp, dwVerHandle, dwVerSize, lpVerBuffer))
 		{
@@ -1333,12 +1338,13 @@ DWORD CIME::GetImeId( UINT uIndex )
         }
     }
 	ms_adwId[0] = ms_adwId[1] = 0;
+
 	return ms_adwId[0];
 }
 
 bool CIME::GetReadingWindowOrientation()
 {
-    bool bHorizontalReading = (ms_hklCurrent == _CHS_HKL) || (ms_hklCurrent == _CHT_HKL_NEW_CHANG_JIE) || (ms_adwId[0] == 0);
+    bool bHorizontalReading = ((uintptr_t)ms_hklCurrent == _CHS_HKL) || ((uintptr_t)ms_hklCurrent == _CHT_HKL_NEW_CHANG_JIE) || (ms_adwId[0] == 0);
     if(!bHorizontalReading && (GETLANG() == LANG_CHT))
     {
         char szRegPath[MAX_PATH];
@@ -1523,12 +1529,12 @@ void CIME::CheckToggleState()
 	// In Vista, we have to use TSF since few IMM functions don't work as expected.
 	// WARNING: Because of timing, g_dwState and g_bChineseIME may not be updated 
 	// immediately after the change on IME states by user.
-	if ( ms_bUILessMode )
+	if ( (HKL)ms_bUILessMode )
 		return;
 
 	/* Check Toggle State */ 
 	bool bIme = ImmIsIME( ms_hklCurrent ) != 0
-		&& ( ( 0xF0000000 & (DWORD)ms_hklCurrent ) == 0xE0000000 ); // Hack to detect IME correctly. When IME is running as TIP, ImmIsIME() returns true for CHT US keyboard.
+		&& ( ( 0xF0000000 & (uintptr_t)ms_hklCurrent ) == 0xE0000000 ); // Hack to detect IME correctly. When IME is running as TIP, ImmIsIME() returns true for CHT US keyboard.
 	ms_bChineseIME = ( GETPRIMLANG() == LANG_CHINESE ) && bIme;
 
 	HIMC himc;
