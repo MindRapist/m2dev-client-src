@@ -448,7 +448,11 @@ BOOL CInstanceBase::IsMovieMode()
 
 BOOL CInstanceBase::IsInvisibility()
 {
+#ifdef __ENABLE_STEALTH_FIX__
+	if (IsAffect(AFFECT_INVISIBILITY) || IsAffect(AFFECT_EUNHYEONG) || IsAffect(AFFECT_REVIVE_INVISIBILITY))
+#else
 	if (IsAffect(AFFECT_INVISIBILITY))
+#endif
 		return true;
 
 	return false;
@@ -1790,7 +1794,11 @@ void CInstanceBase::MovementProcess()
 			m_GraphicThingInstance.SetRotation(fRotation);
 		}
 
+#ifdef __ENABLE_STEALTH_FIX__
+		if (__IsInDustRange() && !IsAffect(AFFECT_INVISIBILITY) && !IsAffect(AFFECT_EUNHYEONG) && !IsAffect(AFFECT_REVIVE_INVISIBILITY))
+#else
 		if (__IsInDustRange())
+#endif
 		{ 
 			float fDustDistance = NEW_GetDistanceFromDestPixelPosition(m_kPPosDust);
 			if (IsMountingHorse())
@@ -1906,7 +1914,7 @@ void CInstanceBase::Update()
 	}
 
 	__ComboProcess();	
-	
+
 	ProcessDamage();
 
 }
@@ -1968,7 +1976,30 @@ void CInstanceBase::Render()
 	++ms_dwRenderCounter;
 
 	m_kHorse.Render();
-	m_GraphicThingInstance.Render();	
+	m_GraphicThingInstance.Render();
+
+#ifdef __ENABLE_STEALTH_FIX__
+	CPythonCharacterManager& rkChrMgr = CPythonCharacterManager::Instance();
+
+	for (auto ptr = rkChrMgr.CharacterInstanceBegin(); ptr != rkChrMgr.CharacterInstanceEnd(); ++ptr)
+	{
+		CInstanceBase* pkInstEach = *ptr;
+
+		if (pkInstEach)
+		{
+			if (pkInstEach->IsAffect(AFFECT_INVISIBILITY) || pkInstEach->IsAffect(AFFECT_EUNHYEONG) || pkInstEach->IsAffect(AFFECT_REVIVE_INVISIBILITY))
+			{
+				if (CPythonPlayer::Instance().IsMainCharacterIndex(pkInstEach->GetVirtualID()))
+					continue;
+
+				if (pkInstEach->IsAffect(AFFECT_EUNHYEONG) && !pkInstEach->IsAffect(AFFECT_INVISIBILITY) && !pkInstEach->IsAffect(AFFECT_REVIVE_INVISIBILITY))
+					pkInstEach->m_GraphicThingInstance.HideAllAttachingEffectForEunhyeong();
+				else
+					pkInstEach->m_GraphicThingInstance.HideAllAttachingEffect();
+			}
+		}
+	}
+#endif
 	
 	if (CActorInstance::IsDirLine())
 	{	

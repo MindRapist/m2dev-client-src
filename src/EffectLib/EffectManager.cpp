@@ -351,6 +351,24 @@ void CEffectManager::HideEffect()
 	m_pSelectedEffectInstance->Hide();
 }
 
+#ifdef __ENABLE_STEALTH_FIX__
+void CEffectManager::ApplyAlwaysHidden()
+{
+	if (!m_pSelectedEffectInstance)
+		return;
+
+	m_pSelectedEffectInstance->ApplyAlwaysHidden();
+}
+
+void CEffectManager::ReleaseAlwaysHidden()
+{
+	if (!m_pSelectedEffectInstance)
+		return;
+
+	m_pSelectedEffectInstance->ReleaseAlwaysHidden();
+}
+#endif
+
 bool CEffectManager::GetEffectData(DWORD dwID, CEffectData ** ppEffect)
 {
 	TEffectDataMap::iterator itor = m_kEftDataMap.find(dwID);
@@ -461,6 +479,26 @@ CEffectManager::~CEffectManager()
 {
 	Destroy();
 }
+
+#ifdef __ENABLE_STEALTH_FIX__ //EXP
+DWORD CEffectManager::GetSelectedEffectDataCRC() const
+{
+	if (!m_pSelectedEffectInstance)
+		return 0;
+
+	CEffectData* pData = m_pSelectedEffectInstance->GetEffectDataPointer();
+	if (!pData)
+		return 0;
+
+	const char* cszFile = pData->GetFileName();
+	if (!cszFile || !cszFile[0])
+		return 0;
+
+	std::string str;
+	StringPath(cszFile, str);
+	return GetCaseCRC32(str.c_str(), (int)str.length());
+}
+#endif
 
 // just for map effect
 

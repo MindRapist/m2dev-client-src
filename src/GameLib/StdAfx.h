@@ -26,6 +26,8 @@
 #include "AudioLib/StdAfx.h"
 #include "EffectLib/StdAfx.h"
 
+#include "UserInterface/Locale_inc.h"
+
 #include "GameType.h"
 #include "GameUtil.h"
 #include "MapType.h"

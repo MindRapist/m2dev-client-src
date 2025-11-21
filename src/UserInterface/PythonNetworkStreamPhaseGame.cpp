@@ -1495,7 +1495,18 @@ bool CPythonNetworkStream::RecvPointChange()
 			case POINT_STAT_RESET_COUNT:
 				__RefreshStatus();
 				break;
+#ifdef CHAR_SELECT_STATS_IMPROVEMENT
+			case POINT_PLAYTIME:
+				m_akSimplePlayerInfo[m_dwSelectedCharacterIndex].dwPlayMinutes = PointChange.value;
+				break;
 			case POINT_LEVEL:
+				m_akSimplePlayerInfo[m_dwSelectedCharacterIndex].byLevel = PointChange.value;
+				__RefreshStatus();
+				__RefreshSkillWindow();
+				break;
+#else
+			case POINT_LEVEL:
+#endif
 			case POINT_ST:
 			case POINT_DX:
 			case POINT_HT:
@@ -2814,6 +2825,26 @@ bool CPythonNetworkStream::RecvMessenger()
 			CPythonMessenger::Instance().SetMobile(char_name, byState);
 			break;
 		}
+
+#ifdef FIX_MESSENGER_ACTION_SYNC
+		case MESSENGER_SUBHEADER_GC_REMOVE_FRIEND:
+		{
+			BYTE bLength;
+
+			if (!Recv(sizeof(bLength), &bLength))
+				return false;
+
+			if (!Recv(bLength, char_name))
+				return false;
+
+			char_name[bLength] = 0;
+
+			CPythonMessenger::Instance().RemoveFriend(char_name);
+			__RefreshTargetBoardByName(char_name);
+
+			break;
+		}
+#endif
 	}
 	return true;
 }

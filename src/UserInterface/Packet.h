@@ -1,5 +1,10 @@
 #pragma once
 #include "Gamelib/RaceData.h"
+#include "StdAfx.h"
+
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+#include "GameType.h"
+#endif
 
 typedef uint8_t TPacketHeader;
 
@@ -730,6 +735,9 @@ enum
 	MESSENGER_SUBHEADER_GC_LOGOUT,
 	MESSENGER_SUBHEADER_GC_INVITE,
 	MESSENGER_SUBHEADER_GC_MOBILE,
+#ifdef FIX_MESSENGER_ACTION_SYNC
+	MESSENGER_SUBHEADER_GC_REMOVE_FRIEND
+#endif
 };
 
 typedef struct packet_messenger

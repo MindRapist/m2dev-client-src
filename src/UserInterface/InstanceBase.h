@@ -3,6 +3,7 @@
 #include "GameLib/RaceData.h"
 #include "GameLib/ActorInstance.h"
 
+#include "StdAfx.h"
 #include "AffectFlagContainer.h"
 
 class CInstanceBase

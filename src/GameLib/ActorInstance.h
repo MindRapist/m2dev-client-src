@@ -497,6 +497,9 @@ class CActorInstance : public IActorInstance, public IFlyTargetableObject
 		float		GetHeight();
 		void		ShowAllAttachingEffect();
 		void		HideAllAttachingEffect();
+#ifdef __ENABLE_STEALTH_FIX__ //EXP
+		void		HideAllAttachingEffectForEunhyeong();
+#endif
 		void		ClearAttachingEffect();
 
 		// Fishing
