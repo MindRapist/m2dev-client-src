@@ -17,7 +17,7 @@ The following fixes address critical issues related to locale compilation and te
 ### 🖼️ Texture and Resource Loading Fix
 
 * **Fix: Missing Texture Cache:** Resolved an issue in `UserInterface/UserInterface.cpp` by adding the necessary missing resource directory names (`"_texcache"`) within the `PackInitialize` function.
-    * **Impact:** This ensures that texture files for new mobs and maps are correctly included and loaded by the client, preventing potential display errors or crashes related to missing resources.
+    * **Impact:** This ensures that texture files for mobs and terrain for the new maps (Cape, Bay, Dawn, Thunder) are displayed.
 
 ### 🌐 Build Configuration Fix
 
