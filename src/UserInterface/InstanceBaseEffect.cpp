@@ -84,7 +84,7 @@ const D3DXCOLOR& CInstanceBase::GetIndexedNameColor(UINT eNameColor)
 	return g_akD3DXClrName[eNameColor];
 }
 
-void CInstanceBase::AddDamageEffect(DWORD damage,BYTE flag,BOOL bSelf,BOOL bTarget)
+void CInstanceBase::AddDamageEffect(DWORD damage, BYTE flag, BOOL bSelf, BOOL bTarget)
 {
 	if(CPythonSystem::Instance().IsShowDamage())
 	{		
@@ -149,19 +149,26 @@ void CInstanceBase::ProcessDamage()
 	else
 	*/
 	{
-		if(bSelf)
+		if (bSelf)
 		{
 			strDamageType = "damage_";
-			if(m_bDamageEffectType==0)
+
+			if (m_bDamageEffectType == 0)
 				rdwCRCEft = EFFECT_DAMAGE_SELFDAMAGE;
 			else
 				rdwCRCEft = EFFECT_DAMAGE_SELFDAMAGE2;
+
 			m_bDamageEffectType = !m_bDamageEffectType;
 		}
-		else if(bTarget == false)
+#ifdef __ENABLE_STEALTH_FIX__ //EXP
+		else if (!bTarget || ((IsAffect(AFFECT_INVISIBILITY) || IsAffect(AFFECT_EUNHYEONG)) && bTarget))
+#else
+		else if (bTarget == false)
+#endif
 		{
 			strDamageType = "nontarget_";
 			rdwCRCEft = EFFECT_DAMAGE_NOT_TARGET;
+
 			return;//현재 적용 안됨.
 		}
 		else
@@ -174,34 +181,41 @@ void CInstanceBase::ProcessDamage()
 	DWORD index = 0;
 	DWORD num = 0;
 	std::vector<std::string> textures;
-	while(damage>0)
+
+	while (damage > 0)
 	{
-		if(index > 7)
+		if (index > 7)
 		{
 			TraceError("ProcessDamage무한루프 가능성");
+
 			break;
 		}
+
 		num = damage%10;
 		damage /= 10;
 		char numBuf[MAX_PATH];
-		sprintf(numBuf,"%d.dds",num);
-		textures.push_back("d:/ymir work/effect/affect/damagevalue/"+strDamageType+numBuf);
+		sprintf(numBuf, "%d.dds", num);
+		textures.push_back("d:/ymir work/effect/affect/damagevalue/"  +strDamageType + numBuf);
 		
 		rkEftMgr.SetEffectTextures(ms_adwCRCAffectEffect[rdwCRCEft],textures);
 		
-		D3DXMATRIX matrix,matTrans;
+		D3DXMATRIX matrix, matTrans;
 		D3DXMatrixIdentity(&matrix);
+
 		matrix._41 = v3Pos.x;
 		matrix._42 = v3Pos.y;
 		matrix._43 = v3Pos.z;
-		D3DXMatrixTranslation(&matrix,v3Pos.x,v3Pos.y,v3Pos.z);
-		D3DXMatrixMultiply(&matrix,&pCamera->GetInverseViewMatrix(),&matrix);
-		D3DXMatrixTranslation(&matTrans,FONT_WIDTH*index,0,0);
+
+		D3DXMatrixTranslation(&matrix, v3Pos.x, v3Pos.y, v3Pos.z);
+		D3DXMatrixMultiply(&matrix, &pCamera->GetInverseViewMatrix(), &matrix);
+		D3DXMatrixTranslation(&matTrans, FONT_WIDTH * index, 0, 0);
+
 		matTrans._41 = -matTrans._41;
 		matrix = matTrans*matrix;
-		D3DXMatrixMultiply(&matrix,&pCamera->GetViewMatrix(),&matrix);
+
+		D3DXMatrixMultiply(&matrix, &pCamera->GetViewMatrix(), &matrix);
 		
-		rkEftMgr.CreateEffect(ms_adwCRCAffectEffect[rdwCRCEft],D3DXVECTOR3(matrix._41,matrix._42,matrix._43)
+		rkEftMgr.CreateEffect(ms_adwCRCAffectEffect[rdwCRCEft], D3DXVECTOR3(matrix._41, matrix._42, matrix._43)
 			,v3Rot);	
 		
 		textures.clear();
@@ -784,11 +798,31 @@ void CInstanceBase::__SetReviveInvisibilityAffect(bool isVisible)
 		if (IsWearingDress())
 			return;
 
-		m_GraphicThingInstance.BlendAlphaValue(0.5f, 1.0f);
+#ifdef __ENABLE_STEALTH_FIX__
+		if (__IsMainInstance() || __MainCanSeeHiddenThing())
+		{
+#endif
+			m_GraphicThingInstance.BlendAlphaValue(0.5f, 1.0f);
+#ifdef __ENABLE_STEALTH_FIX__
+		}
+		else
+		{
+			m_GraphicThingInstance.BlendAlphaValue(0.0f, 1.0f);
+			m_GraphicThingInstance.HideAllAttachingEffect();
+		}
+#endif
 	}
 	else
 	{
-		m_GraphicThingInstance.BlendAlphaValue(1.0f, 1.0f);	
+#ifdef __ENABLE_STEALTH_FIX__
+		if (!IsAffect(AFFECT_EUNHYEONG) && !IsAffect(AFFECT_INVISIBILITY))
+		{
+#endif
+			m_GraphicThingInstance.BlendAlphaValue(1.0f, 1.0f);
+#ifdef __ENABLE_STEALTH_FIX__
+			m_GraphicThingInstance.ShowAllAttachingEffect();
+		}
+#endif
 	}
 }
 
@@ -808,13 +842,26 @@ void CInstanceBase::__Assassin_SetEunhyeongAffect(bool isVisible)
 		{
 			// 2004.10.16.myevan.은형법 완전 투명
 			m_GraphicThingInstance.BlendAlphaValue(0.0f, 1.0f);
-			m_GraphicThingInstance.HideAllAttachingEffect();
+#ifdef __ENABLE_STEALTH_FIX__ //EXP
+			if (!IsAffect(AFFECT_INVISIBILITY) && !IsAffect(AFFECT_REVIVE_INVISIBILITY))
+				m_GraphicThingInstance.HideAllAttachingEffectForEunhyeong();
+			else
+#endif
+				m_GraphicThingInstance.HideAllAttachingEffect();
 		}
 	}
 	else
 	{
-		m_GraphicThingInstance.BlendAlphaValue(1.0f, 1.0f);	
-		m_GraphicThingInstance.ShowAllAttachingEffect();
+#ifdef __ENABLE_STEALTH_FIX__
+		if (!IsAffect(AFFECT_REVIVE_INVISIBILITY) && !IsAffect(AFFECT_INVISIBILITY))
+		{
+#endif
+			m_GraphicThingInstance.BlendAlphaValue(1.0f, 1.0f);
+			m_GraphicThingInstance.ShowAllAttachingEffect();
+#ifdef __ENABLE_STEALTH_FIX__
+			ProcessDamage();
+		}
+#endif
 	}
 }
 
@@ -822,8 +869,6 @@ void CInstanceBase::__Shaman_SetParalysis(bool isParalysis)
 {
 	m_GraphicThingInstance.SetParalysis(isParalysis);
 }
-
-
 
 void CInstanceBase::__Warrior_SetGeomgyeongAffect(bool isVisible)
 {
@@ -895,7 +940,11 @@ void CInstanceBase::__SetAffect(UINT eAffect, bool isVisible)
 			return;
 			break;
 		case AFFECT_REVIVE_INVISIBILITY:
+#ifdef __ENABLE_STEALTH_FIX__
+			__SetReviveInvisibilityAffect(isVisible);
+#else
 			__Assassin_SetEunhyeongAffect(isVisible);
+#endif
 			break;
 		case AFFECT_EUNHYEONG:
 			__Assassin_SetEunhyeongAffect(isVisible);
@@ -911,15 +960,28 @@ void CInstanceBase::__SetAffect(UINT eAffect, bool isVisible)
 			// 2004.07.17.levites.isShow를 ViewFrustumCheck로 변경
 			if (isVisible)
 			{
+#ifndef __ENABLE_STEALTH_FIX__
 				m_GraphicThingInstance.ClearAttachingEffect();
 				__EffectContainer_Destroy();
 				DetachTextTail();
+#else
+				m_GraphicThingInstance.HideAllAttachingEffect();
+#endif
 			}
 			else
 			{
+#ifdef __ENABLE_STEALTH_FIX__
+				if (!IsAffect(AFFECT_EUNHYEONG) && !IsAffect(AFFECT_REVIVE_INVISIBILITY))
+				{
+					m_GraphicThingInstance.BlendAlphaValue(1.0f, 1.0f);
+					m_GraphicThingInstance.ShowAllAttachingEffect();
+					ProcessDamage();
+				}
+#else
 				m_GraphicThingInstance.BlendAlphaValue(1.0f, 1.0f);
 				AttachTextTail();
 				RefreshTextTail();
+#endif
 			}
 			return;
 			break;

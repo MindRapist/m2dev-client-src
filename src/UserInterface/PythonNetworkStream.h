@@ -8,6 +8,10 @@
 
 #include "packet.h"
 
+#ifdef FIX_POS_SYNC
+#include <GameLib/ActorInstance.h>
+#endif
+
 class CInstanceBase;
 class CNetworkActorManager;
 struct SNetworkActorData;
@@ -136,7 +140,11 @@ class CPythonNetworkStream : public CNetworkStream, public CSingleton<CPythonNet
 
 		bool SendSyncPositionElementPacket(DWORD dwVictimVID, DWORD dwVictimX, DWORD dwVictimY);
 
+#ifdef FIX_POS_SYNC
+		bool SendAttackPacket(UINT uMotAttack, DWORD dwVIDVictim, BOOL bPacket, CActorInstance::BlendingPosition& sBlending);
+#else
 		bool SendAttackPacket(UINT uMotAttack, DWORD dwVIDVictim);
+#endif
 		bool SendCharacterStatePacket(const TPixelPosition& c_rkPPosDst, float fDstRot, UINT eFunc, UINT uArg);
 		bool SendUseSkillPacket(DWORD dwSkillIndex, DWORD dwTargetVID=0);
 		bool SendTargetPacket(DWORD dwVID);
@@ -478,6 +486,9 @@ class CPythonNetworkStream : public CNetworkStream, public CSingleton<CPythonNet
 		bool RecvTargetPacket();
 		bool RecvViewEquipPacket();
 		bool RecvDamageInfoPacket();
+#ifdef FIX_POS_SYNC
+		bool RecvCharacterAttackPacket();
+#endif
 
 		// Mount
 		bool RecvMountPacket();

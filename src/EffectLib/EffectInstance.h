@@ -4,6 +4,7 @@
 #include "Eterlib/Pool.h"
 #include "AudioLib/Type.h"
 
+#include "StdAfx.h"
 #include "EffectElementBaseInstance.h"
 #include "EffectData.h"
 #include "EffectMeshInstance.h"
@@ -41,6 +42,14 @@ class CEffectInstance : public CGraphicObjectInstance
 		bool LessRenderOrder(CEffectInstance* pkEftInst);
 
 		void SetEffectDataPointer(CEffectData * pEffectData);
+		
+#ifdef __ENABLE_STEALTH_FIX__ //EXP
+		// Returns the pointer to the effect data associated with this instance.
+		CEffectData* GetEffectDataPointer() const
+		{
+			return m_pkEftData;
+		}
+#endif
 
 		void Clear();
 		BOOL isAlive();
@@ -85,6 +94,7 @@ class CEffectInstance : public CGraphicObjectInstance
 		float m_fLastTime;
 
 	public:
+
 		static CDynamicPool<CEffectInstance>	ms_kPool;
 		static int ms_iRenderingEffectCount;
 };

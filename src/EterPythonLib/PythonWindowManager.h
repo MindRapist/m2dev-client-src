@@ -106,6 +106,10 @@ namespace UI
 			void		SetTop(CWindow * pWin);
 			void		SetTopUIWindow();
 			void		ResetCapture();
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+			void		ClearStoredSlotCoolTimeInAllSlotWindows(DWORD dwKey, DWORD dwSlotIndex);
+#endif
+
 
 			void		Update();
 			void		Render();

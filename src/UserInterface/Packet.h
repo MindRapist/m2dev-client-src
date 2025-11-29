@@ -1,5 +1,10 @@
 #pragma once
 #include "Gamelib/RaceData.h"
+#include "StdAfx.h"
+
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+#include "GameType.h"
+#endif
 
 typedef uint8_t TPacketHeader;
 
@@ -511,6 +516,18 @@ typedef struct command_attack
 	uint32_t	dwVictimVID;	// 적 VID
 	uint8_t	bCRCMagicCubeProcPiece;
 	uint8_t	bCRCMagicCubeFilePiece;
+#ifdef FIX_POS_SYNC
+	BOOL    bPacket;
+	LONG    lSX;
+	LONG    lSY;
+	LONG    lX;
+	LONG    lY;
+	float    fSyncDestX;
+	float    fSyncDestY;
+	DWORD    dwBlendDuration;
+	DWORD    dwComboMotion;
+	DWORD    dwTime;
+#endif
 } TPacketCGAttack;
 
 typedef struct command_chat
@@ -730,6 +747,9 @@ enum
 	MESSENGER_SUBHEADER_GC_LOGOUT,
 	MESSENGER_SUBHEADER_GC_INVITE,
 	MESSENGER_SUBHEADER_GC_MOBILE,
+#ifdef FIX_MESSENGER_ACTION_SYNC
+	MESSENGER_SUBHEADER_GC_REMOVE_FRIEND
+#endif
 };
 
 typedef struct packet_messenger
@@ -1862,6 +1882,16 @@ typedef struct packet_attack
     uint32_t       dwVID;
     uint32_t       dwVictimVID;    // 적 VID
     uint8_t        bType;          // 공격 유형
+#ifdef FIX_POS_SYNC
+	BOOL			bPacket;
+	LONG			lSX;
+	LONG			lSY;
+	LONG			lX;
+	LONG			lY;
+	float			fSyncDestX;
+	float			fSyncDestY;
+	DWORD			dwBlendDuration;
+#endif
 } TPacketGCAttack;
 
 typedef struct packet_c2c
