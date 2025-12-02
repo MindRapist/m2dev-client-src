@@ -33,7 +33,7 @@
 # 4. KEPT SUBMODULES (Ignore Contents / Track Pointer)
 # Tracks the vendor folder, but ignores all source files inside (recursively).
 # -------------------------------------------------------------------
-/vendor/cryptopp/*
+/vendor/cryptopp/src/*
 /vendor/mio/*
 /vendor/zstd/*
 /vendor/lzo-2.10/include/lzo/*

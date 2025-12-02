@@ -12,40 +12,37 @@ INCLUDE_DIR = "extern/include"
 
 # Define all 11 dependencies and their unique rules
 # Format: ('name', 'path', 'url', [files_to_copy], should_cleanup)
-# Note on 'files_to_copy': Use the path relative to the submodule's root.
-# Folders (rapidjson/wil) are listed by their first directory component (e.g., 'include/rapidjson').
 
 SUBMODULE_CONFIG = [
 	# --- Category 1: Header-Only / Copy & Cleanup (6 Dependencies) ---
-	# These are copied to extern/include/ and then deleted from vendor/
 	{'name': 'stb', 'path': 'vendor/stb', 'url': 'https://github.com/nothings/stb', 
-	 'copy': ['stb_image.h', 'stb_image_write.h'], 'cleanup': True, 'nested_include': False},
+	 'copy': ['stb_image.h', 'stb_image_write.h'], 'cleanup': True, 'preserve_parts': []},
 	{'name': 'pcg-cpp', 'path': 'vendor/pcg-cpp', 'url': 'https://github.com/imneme/pcg-cpp', 
 	 'copy': ['include/pcg_random.hpp', 'include/pcg_extras.hpp', 'include/pcg_uint128.hpp'], 
 	 'cleanup': True, 'preserve_parts': []},
 	{'name': 'argparse', 'path': 'vendor/argparse', 'url': 'https://github.com/p-ranav/argparse', 
-	 'copy': ['include/argparse/argparse.hpp'], 'cleanup': True, 'nested_include': False},
+	 'copy': ['include/argparse/argparse.hpp'], 'cleanup': True, 'preserve_parts': []},
 	{'name': 'miniaudio', 'path': 'vendor/miniaudio', 'url': 'https://github.com/mackron/miniaudio', 
-	 'copy': ['miniaudio.c', 'miniaudio.h'], 'cleanup': True, 'nested_include': False},
-	# Note: For rapidjson/wil, we use the top directory 'include' for cloning/pathing
+	 'copy': ['miniaudio.c', 'miniaudio.h'], 'cleanup': True, 'preserve_parts': []},
 	{'name': 'rapidjson', 'path': 'vendor/rapidjson', 'url': 'https://github.com/Tencent/rapidjson', 
-	 'copy': ['include/rapidjson'], 'cleanup': True, 'nested_include': False},
+	 'copy': ['include/rapidjson'], 'cleanup': True, 'preserve_parts': []},
 	{'name': 'wil', 'path': 'vendor/wil', 'url': 'https://github.com/microsoft/wil', 
-	 'copy': ['include/wil'], 'cleanup': True, 'nested_include': False},
+	 'copy': ['include/wil'], 'cleanup': True, 'preserve_parts': []},
 
 	# --- Category 2: Full Submodules (5 Dependencies) ---
-	# These are cloned and KEPT for consumption by add_subdirectory().
-	{'name': 'Cryptopp', 'path': 'vendor/cryptopp', 'url': 'https://github.com/weidai11/cryptopp', 
-	 'copy': [], 'cleanup': False, 'nested_include': False},
+	{'name': 'Cryptopp', 'path': 'vendor/cryptopp/src', 'url': 'https://github.com/weidai11/cryptopp', 
+	 'copy': [], 'cleanup': False, 'preserve_parts': []},
 	{'name': 'mio', 'path': 'vendor/mio', 'url': 'https://github.com/vimpunk/mio', 
-	 'copy': [], 'cleanup': False, 'nested_include': False},
+	 'copy': [], 'cleanup': False, 'preserve_parts': []},
 	{'name': 'zstd', 'path': 'vendor/zstd', 'url': 'https://github.com/facebook/zstd', 
-	 'copy': [], 'cleanup': False, 'nested_include': False},
+	 'copy': [], 'cleanup': False, 'preserve_parts': []},
 	# --- Specialized Structure / Partial Submodules ---
 	{'name': 'DirectXMath', 'path': 'vendor/DirectXMath', 'url': 'https://github.com/microsoft/DirectXMath', 
-	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['build']}, # Copy 'build' to itself (keep source)
-	{'name': 'lzo', 'path': 'vendor/lzo-2.10', 'url': 'https://github.com/synaptseal/lzo-2.10', 
-	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['include/lzo', 'src', 'CMakeLists.txt'], 'restructure': True},
+	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['build']},
+	
+	# LZO: Uses manual clone/copy to guarantee file presence before partial cleanup
+	{'name': 'lzo', 'path': 'vendor/lzo-2.10/tmp', 'url': 'https://github.com/synaptseal/lzo-2.10', 
+	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['include/lzo', 'src', 'CMakeLists.txt'], 'manual_clone_restructure': True},
 ]
 
 def run_git_command(command, error_message):
@@ -63,46 +60,64 @@ def run_git_command(command, error_message):
 		print(f"❌ FATAL ERROR: {error_message}")
 		sys.exit(1)
 
-# --- New function to handle LZO's flat structure ---
-def restructure_lzo(full_path):
-	"""Creates the include/lzo and src folders and moves LZO's flat files into them."""
-	print("   -> Restructuring LZO source files for CMake compatibility...")
+# --- New function to handle LZO's flat structure using manual cloning ---
+def restructure_lzo(full_path, dep_url):
+	"""Clones LZO to a temp directory, moves files to final structure, and deletes the temp clone."""
+	print("   -> Performing LZO manual clone and restructuring...")
 	
-	# 1. Define target directories
+	# 1. Define temporary clone directory and clean any old artifacts
+	temp_clone_dir = os.path.join(full_path, 'temp_clone')
+	if os.path.exists(temp_clone_dir):
+		shutil.rmtree(temp_clone_dir)
+
+	# 2. Manually clone the repository into the temporary subdirectory
+	# We use subprocess.run directly, not run_git_command, as this is a temporary, internal operation.
+	try:
+		print(f"   - Cloning source into temporary directory: {os.path.basename(temp_clone_dir)}")
+		subprocess.run(
+			["git", "clone", "--depth", "1", dep_url, temp_clone_dir],
+			check=True,
+			stdout=sys.stdout,
+			stderr=sys.stderr
+		)
+	except subprocess.CalledProcessError:
+		print(f"❌ FATAL ERROR: Failed to manually clone LZO into {temp_clone_dir}")
+		sys.exit(1)
+
+	# 3. Define target directories and ensure they exist
 	lzo_include_dir = os.path.join(full_path, 'include', 'lzo')
 	lzo_src_dir = os.path.join(full_path, 'src')
 	
 	os.makedirs(lzo_include_dir, exist_ok=True)
 	os.makedirs(lzo_src_dir, exist_ok=True)
 	
-	# 2. Define exclusions (files that should stay in the root)
-	# Added 'README', 'LICENSE' and 'AUTHORS' for common repository files
-	EXCLUSIONS = ('CMakeLists.txt', '.git', '.gitignore', 'include', 'src', 'temp_lzo', 'README', 'LICENSE', 'AUTHORS')
-
-	# 3. Find and move files
-	files_moved = 0
+	# 4. Define exclusions and copy files from the temp clone
+	# These are files we want to ignore in the source repo
+	EXCLUSIONS = ('CMakeLists.txt', '.git', '.gitignore', 'include', 'src', 'temp_clone', 'README', 'LICENSE', 'AUTHORS', 'test', 'doc', 'examples')
+	files_copied = 0
 	
-	for item in os.listdir(full_path):
-		# Skip directories, exclusions, and known metadata files
-		if os.path.isdir(os.path.join(full_path, item)) or item.upper() in [x.upper() for x in EXCLUSIONS]:
+	for item in os.listdir(temp_clone_dir):
+		# Skip directories and known exclusion files
+		if os.path.isdir(os.path.join(temp_clone_dir, item)) or item.upper() in [x.upper() for x in EXCLUSIONS]:
 			continue
 			
-		source_file_path = os.path.join(full_path, item)
+		source_file_path = os.path.join(temp_clone_dir, item)
 
-		# Check if it's a known source or header type, or a configuration file that looks like source
 		if item.lower().endswith(('.h', '.hpp', '.in', '.H', '.HPP')):
-			# Move all header-like files to include/lzo
-			shutil.move(source_file_path, os.path.join(lzo_include_dir, item))
-			files_moved += 1
+			# Copy all header-like files to include/lzo
+			shutil.copy2(source_file_path, os.path.join(lzo_include_dir, item))
+			files_copied += 1
 		elif item.lower().endswith(('.c', '.cc', '.cpp', '.C', '.CC', '.CPP')):
-			# Move all source files to src
-			shutil.move(source_file_path, os.path.join(lzo_src_dir, item))
-			files_moved += 1
-		else:
-			# If we can't classify it, leave it in the root for the partial cleanup to handle
-			print(f"   [NOTE] Unclassified file left in root: {item}")
+			# Copy all source files to src
+			shutil.copy2(source_file_path, os.path.join(lzo_src_dir, item))
+			files_copied += 1
+		# Unclassified files are ignored (stay in temp and are deleted)
 			
-	print(f"   -> LZO restructuring complete. {files_moved} files moved.")
+	# 5. Cleanup the temporary clone
+	shutil.rmtree(temp_clone_dir)
+            
+	print(f"   -> LZO restructuring complete. {files_copied} files copied into target directories.")
+
 
 def initialize_dependency(dep):
 	"""Adds or updates a single dependency and handles file operations."""
@@ -118,16 +133,16 @@ def initialize_dependency(dep):
 			f"Failed to update existing submodule: {path}"
 		)
 		
-		# --- AGGRESSIVE FILE REFRESH (Crucial for LZO/DXMath, must preserve custom files) ---
-		if dep['cleanup'] in (False, 'partial'): 
+		# --- AGGRESSIVE FILE REFRESH (Crucial for DirectXMath and Cryptopp) ---
+		# LZO skips this block and uses manual clone for safety
+		if dep['cleanup'] in (False, 'partial') and not dep.get('manual_clone_restructure'): 
 			
-			# 1. Prepare to preserve custom files (LZO is the only one we know of)
+			# 1. Prepare to preserve custom files (e.g., CMakeLists.txt)
 			custom_file = os.path.join(full_path, "CMakeLists.txt")
 			temp_file_path = os.path.join(PROJECT_ROOT, f"temp_{dep['name']}_cmakelist.txt")
 			
 			needs_restore = False
 			if os.path.exists(custom_file):
-				# Move the custom file out of the submodule directory before the aggressive reset
 				print(f"   -> Preserving custom CMakeLists.txt for {dep['name']}...")
 				shutil.move(custom_file, temp_file_path)
 				needs_restore = True
@@ -146,7 +161,6 @@ def initialize_dependency(dep):
 					f"Failed to clean {path}."
 				)
 			except Exception as e:
-				# Add a safe path in case the clean/reset failed but the file was moved
 				if needs_restore and os.path.exists(temp_file_path):
 					print(f" ⚠️ WARNING: Restore file needed after error. Attempting to restore custom file...")
 					shutil.move(temp_file_path, custom_file)
@@ -192,13 +206,14 @@ def initialize_dependency(dep):
 				os.makedirs(os.path.dirname(copy_dst_path), exist_ok=True)
 				shutil.copy2(source_src, copy_dst_path)
 
-	if dep.get('restructure') and dep['name'] == 'lzo':
-		restructure_lzo(full_path)
+	# --- NEW LZO MANUAL CLONE / RESTRUCTURE STEP ---
+	if dep.get('manual_clone_restructure') and dep['name'] == 'lzo':
+		restructure_lzo(full_path, dep['url'])
 
 	# 3.1 PARTIAL CLEANUP (For DirectXMath and LZO)
 	if dep['cleanup'] == 'partial':
 		print(f"   -> Performing partial cleanup for {dep['name']} (Keeping only: {dep['preserve_parts']})")
-
+        # ... (rest of the partial cleanup logic is the same)
 		temp_dir = os.path.join(PROJECT_ROOT, f"temp_{dep['name']}")
 		os.makedirs(temp_dir, exist_ok=True)
 
@@ -214,7 +229,8 @@ def initialize_dependency(dep):
 				if os.path.exists(source_path):
 					shutil.move(source_path, dest_path)
 				else:
-					print(f"   [WARNING] Item not found during partial cleanup: {item}. Skipping.")
+					# This warning is expected for LZO/DXMath if the folder was empty before this run
+					print(f"   [WARNING] Item not found during partial cleanup: {item}. Skipping.") 
 			
 			# B. DELETE the ENTIRE source folder (removes the cloned repository)
 			shutil.rmtree(full_path)
