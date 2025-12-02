@@ -109,21 +109,47 @@ def initialize_dependency(dep):
 			["git", "submodule", "update", "--init", "--force", path], 
 			f"Failed to update existing submodule: {path}"
 		)
-
-		# --- NEW AGGRESSIVE FILE REFRESH (Crucial for LZO/DXMath) ---
-		# This ensures all source files are physically present by resetting the working tree.
+		
+		# --- AGGRESSIVE FILE REFRESH (Crucial for LZO/DXMath, must preserve custom files) ---
 		if dep['cleanup'] in (False, 'partial'): 
-			print(f"  -> Forcing full file refresh and cleanup in {path}...")
-			# 1. Hard reset to the tracked commit (forces correct version checkout)
-			run_git_command(
-				["git", "-C", full_path, "reset", "--hard", "HEAD"], 
-				f"Failed to hard reset {path}."
-			)
-			# 2. Clean up untracked files/directories (removes our empty folders and other junk)
-			run_git_command(
-				["git", "-C", full_path, "clean", "-fdx"], 
-				f"Failed to clean {path}."
-			)
+			
+			# 1. Prepare to preserve custom files (LZO is the only one we know of)
+			custom_file = os.path.join(full_path, "CMakeLists.txt")
+			temp_file_path = os.path.join(PROJECT_ROOT, f"temp_{dep['name']}_cmakelist.txt")
+			
+			needs_restore = False
+			if os.path.exists(custom_file):
+				# Move the custom file out of the submodule directory before the aggressive reset
+				print(f"   -> Preserving custom CMakeLists.txt for {dep['name']}...")
+				shutil.move(custom_file, temp_file_path)
+				needs_restore = True
+
+			print(f"   -> Forcing full file refresh and cleanup in {path}...")
+			
+			try:
+				# 2. Hard reset to the tracked commit (forces correct version checkout)
+				run_git_command(
+					["git", "-C", full_path, "reset", "--hard", "HEAD"], 
+					f"Failed to hard reset {path}."
+				)
+				# 3. Clean up untracked files/directories (now safe because the file was moved)
+				run_git_command(
+					["git", "-C", full_path, "clean", "-fdx"], 
+					f"Failed to clean {path}."
+				)
+			except Exception as e:
+				# Add a safe path in case the clean/reset failed but the file was moved
+				if needs_restore and os.path.exists(temp_file_path):
+					print(f" ⚠️ WARNING: Restore file needed after error. Attempting to restore custom file...")
+					shutil.move(temp_file_path, custom_file)
+				raise e
+
+			# 4. Restore the custom file
+			if needs_restore:
+				print(f"   -> Restoring custom CMakeLists.txt for {dep['name']}...")
+				shutil.move(temp_file_path, custom_file)
+
+		# ---------------------------------------------------------------------------------------------
 	else:
 		# Case 2: Directory is missing -> Run `add` to fix index and clone
 		print(f"   -> Adding missing submodule: {path}")
