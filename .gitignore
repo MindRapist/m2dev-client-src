@@ -22,12 +22,12 @@
 # 3. TEMPORARY SOURCE CACHES (Full Delete)
 # Folders created in 'vendor/' and then deleted by depinit_client.py.
 # -------------------------------------------------------------------
-/vendor/stb/
-/vendor/pcg-cpp/
-/vendor/argparse/
-/vendor/miniaudio/
-/vendor/rapidjson/
-/vendor/wil/
+/vendor/stb/*
+/vendor/pcg-cpp/*
+/vendor/argparse/*
+/vendor/miniaudio/*
+/vendor/rapidjson/*
+/vendor/wil/*
 
 # -------------------------------------------------------------------
 # 4. KEPT SUBMODULES (Ignore Contents / Track Pointer)
