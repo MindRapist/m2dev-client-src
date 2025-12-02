@@ -45,7 +45,7 @@ SUBMODULE_CONFIG = [
 	{'name': 'DirectXMath', 'path': 'vendor/DirectXMath', 'url': 'https://github.com/microsoft/DirectXMath', 
 	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['build']}, # Copy 'build' to itself (keep source)
 	{'name': 'lzo', 'path': 'vendor/lzo-2.10', 'url': 'https://github.com/synaptseal/lzo-2.10', 
-	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['include/lzo', 'src', 'CMakeLists.txt'], 'restructure': True}, # Maintain LZO includes, source files and initial CMakeLists.txt
+	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['include/lzo', 'src', 'CMakeLists.txt'], 'restructure': True},
 ]
 
 def run_git_command(command, error_message):
@@ -75,24 +75,32 @@ def restructure_lzo(full_path):
 	os.makedirs(lzo_include_dir, exist_ok=True)
 	os.makedirs(lzo_src_dir, exist_ok=True)
 	
-	# 2. Find and move files
+	# 2. Define exclusions (files that should stay in the root)
+	# Added 'README', 'LICENSE' and 'AUTHORS' for common repository files
+	EXCLUSIONS = ('CMakeLists.txt', '.git', '.gitignore', 'include', 'src', 'temp_lzo', 'README', 'LICENSE', 'AUTHORS')
+
+	# 3. Find and move files
 	files_moved = 0
 	
 	for item in os.listdir(full_path):
-		# Ignore custom files and git metadata
-		if item in ('CMakeLists.txt', '.git', '.gitignore', 'include', 'src', 'temp_lzo'):
-			continue
-		if os.path.isdir(os.path.join(full_path, item)):
+		# Skip directories, exclusions, and known metadata files
+		if os.path.isdir(os.path.join(full_path, item)) or item.upper() in [x.upper() for x in EXCLUSIONS]:
 			continue
 			
-		if item.endswith(('.h', '.H')):
-			# Move all headers to include/lzo
-			shutil.move(os.path.join(full_path, item), os.path.join(lzo_include_dir, item))
+		source_file_path = os.path.join(full_path, item)
+
+		# Check if it's a known source or header type, or a configuration file that looks like source
+		if item.lower().endswith(('.h', '.hpp', '.in', '.H', '.HPP')):
+			# Move all header-like files to include/lzo
+			shutil.move(source_file_path, os.path.join(lzo_include_dir, item))
 			files_moved += 1
-		elif item.endswith(('.c', '.C')):
+		elif item.lower().endswith(('.c', '.cc', '.cpp', '.C', '.CC', '.CPP')):
 			# Move all source files to src
-			shutil.move(os.path.join(full_path, item), os.path.join(lzo_src_dir, item))
+			shutil.move(source_file_path, os.path.join(lzo_src_dir, item))
 			files_moved += 1
+		else:
+			# If we can't classify it, leave it in the root for the partial cleanup to handle
+			print(f"   [NOTE] Unclassified file left in root: {item}")
 			
 	print(f"   -> LZO restructuring complete. {files_moved} files moved.")
 
