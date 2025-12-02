@@ -147,6 +147,21 @@ def handle_extraction(dep):
 
 	print(f"🔄 Managing extraction dependency: {name}...")
 
+	if tmp_path.exists():
+		print(f"   Pre-cleanup: Deleting stale temporary directory: {tmp_path}")
+		# Use the same retry logic as the post-cleanup to avoid WinError 5 here
+		MAX_RETRIES = 5
+
+		for attempt in range(MAX_RETRIES):
+			try:
+				shutil.rmtree(tmp_path)
+				break
+			except PermissionError as e:
+				if attempt < MAX_RETRIES - 1:
+					time.sleep(0.5)
+				else:
+					raise e
+
 	# 1. Clean up existing files in the target directory that will be replaced
 	# This ensures a clean update, crucial for file-extraction deps.
 	for src_file, dest_file in dep['extract']:
