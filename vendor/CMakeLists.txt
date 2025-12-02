@@ -1,4 +1,4 @@
-add_subdirectory(cryptopp/src)
+add_subdirectory(cryptopp)
 add_subdirectory(lzo-2.10)
 add_subdirectory(mio)
 
