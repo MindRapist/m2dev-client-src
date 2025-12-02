@@ -183,35 +183,52 @@ def handle_extraction(dep):
 	target_path.mkdir(parents=True, exist_ok=True)
 
 	# 4. Move/Copy files/folders
-	for src_in_repo, dest_in_target in dep["extract"]:
-		source = tmp_path / src_in_repo
-
-		# --- SPECIAL HANDLING FOR DirectXMath ---
-		if dep["name"] == "DirectXMath" and src_in_repo == "build" and dest_in_target == ".":
-			print(f"   Copying CONTENTS of DirectXMath/build to {target_path}")
-			for item in source.iterdir():
+	# --- 4a. SPECIAL HANDLING FOR DirectXMath ---
+	if name == "DirectXMath":
+		# Source: The 'build' subdirectory inside the temporary clone
+		source_dir = tmp_path / "build"
+		# Destination: The target directory (vendor/DirectXMath)
+		destination_dir = target_path
+		
+		print(f"   Copying CONTENTS of DirectXMath/build to {destination_dir}")
+		
+		if source_dir.exists():
+			# Copy all files from source_dir into destination_dir
+			for item in source_dir.iterdir():
 				if item.is_file():
-					shutil.copy2(item, target_path / item.name)
-			continue
-
-		# Determine the final destination path
-		if dest_in_target == ".":
-			# If destination is '.', use the source's name as the final name
-			destination = target_path / source.name
+					shutil.copy2(item, destination_dir / item.name)
+			
+			# NOTE: If DirectXMath had subfolders that needed copying, 
+			# you'd need to add shutil.copytree logic here as well. 
+			# Assuming files only, based on typical header libraries.
 		else:
-			destination = target_path / dest_in_target
+			print(f"   [ERROR] DirectXMath 'build' folder not found at {source_dir}. Aborting.")
+			# We raise an error here since the primary component is missing
+			raise FileNotFoundError(f"DirectXMath 'build' folder missing.")
 
-		# Move or copy the item
-		if source.exists():
-			print(f"   Copying {source.name} to {destination}")
-			if source.is_dir():
-				# For folders (like rapidjson, wil, lzo)
-				shutil.copytree(source, destination, dirs_exist_ok=True)
+	# --- 4b. DEFAULT EXTRACTION HANDLING (For all other dependencies) ---
+	else:
+		for src_in_repo, dest_in_target in dep["extract"]:
+			source = tmp_path / src_in_repo
+			
+			# Determine the final destination path
+			if dest_in_target == ".":
+				# If destination is '.', use the source's name as the final name
+				destination = target_path / source.name
 			else:
-				# For single files (like stb, pcg-cpp)
-				shutil.copy2(source, destination)
-		else:
-			 print(f"   [WARNING] Source path not found in temporary repo: {source}")
+				destination = target_path / dest_in_target
+				
+			# Move or copy the item
+			if source.exists():
+				print(f"   Copying {source.name} to {destination}")
+				if source.is_dir():
+					# For folders (like rapidjson, wil, lzo)
+					shutil.copytree(source, destination, dirs_exist_ok=True)
+				else:
+					# For single files (like stb, pcg-cpp)
+					shutil.copy2(source, destination)
+			else:
+				 print(f"   [WARNING] Source path not found in temporary repo: {source}")
 
 	# 5. Clean up the temporary directory
 	print(f"   Cleaning up temporary directory: {tmp_path}")
