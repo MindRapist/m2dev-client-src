@@ -156,7 +156,11 @@ def initialize_dependency(dep):
 				source_path = os.path.join(temp_dir, item)
 				dest_path = os.path.join(full_path, item)
 				
-				shutil.move(source_path, dest_path)
+				# *** CORRECTED: Only move back if the item exists in the temporary folder ***
+				if os.path.exists(source_path):
+					shutil.move(source_path, dest_path)
+				# If the source path doesn't exist here, it means it was skipped in Step A, 
+				# which is the correct behavior.
 
 		except Exception as e:
 			print(f"❌ FATAL ERROR during partial cleanup of {dep['name']}: {e}")

@@ -36,8 +36,8 @@
 /vendor/cryptopp/src/*
 /vendor/mio/*
 /vendor/zstd/*
-/vendor/lzo-2.10/include*
-/vendor/lzo-2.10/src*
+/vendor/lzo-2.10/include/lzo/*
+/vendor/lzo-2.10/src/*
 /vendor/DirectXMath/*
 
 # -------------------------------------------------------------------
