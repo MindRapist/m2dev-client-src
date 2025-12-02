@@ -79,7 +79,7 @@ def initialize_dependency(dep):
 		# Case 2: Directory is missing -> Run `add` to fix index and clone
 		print(f"   -> Adding missing submodule: {path}")
 		run_git_command(
-			["git", "submodule", "add", dep['url'], path], 
+			["git", "submodule", "add", "--force", dep['url'], path], 
 			f"Failed to add missing submodule: {path}. Check URL: {dep['url']}"
 		)
 
