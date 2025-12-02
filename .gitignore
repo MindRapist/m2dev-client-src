@@ -45,6 +45,8 @@
 # The '!' only works if a parent folder was aggressively ignored (like /vendor/*), 
 # but they are kept here for the essential files that MUST be committed to your main repo.
 # -------------------------------------------------------------------
+!/vendor/lzo-2.10/include/lzo/
+!/vendor/lzo-2.10/src/
 !/vendor/lzo-2.10/CMakeLists.txt
 !/vendor/CMakeLists.txt
 !/vendor/cryptopp/CMakeLists.txt
