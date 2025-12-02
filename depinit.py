@@ -3,6 +3,7 @@ import shutil
 import subprocess
 from pathlib import Path
 import time
+import stat
 
 # --- Configuration ---
 # Define a central list of all dependencies
@@ -150,18 +151,12 @@ def handle_extraction(dep):
 
 	if tmp_path.exists():
 		print(f"   Pre-cleanup: Deleting stale temporary directory: {tmp_path}")
-		# Use the same retry logic as the post-cleanup to avoid WinError 5 here
-		MAX_RETRIES = 5
-
-		for attempt in range(MAX_RETRIES):
-			try:
-				shutil.rmtree(tmp_path)
-				break
-			except PermissionError as e:
-				if attempt < MAX_RETRIES - 1:
-					time.sleep(0.5)
-				else:
-					raise e
+		try:
+			shutil.rmtree(tmp_path, onerror=handle_remove_readonly)
+			print("   Cleanup successful.")
+		except Exception as e:
+			print(f"   ❌ Final cleanup failed with error: {e}")
+			raise
 
 	# 1. Clean up existing files in the target directory that will be replaced
 	# This ensures a clean update, crucial for file-extraction deps.
@@ -177,7 +172,8 @@ def handle_extraction(dep):
 	# 2. Clone into a temporary directory
 	print(f"   Cloning into temporary directory: {tmp_path}")
 	# Using --depth 1 to make the temporary clone fast and shallow
-	run_git_command(f"git clone --depth 1 {repo_url} {tmp_path}")
+	clone_command = ["git", "clone", "--depth", "1", repo_url, str(tmp_path)]
+	run_git_command(clone_command)
 
 	# 3. Create the target directory if it doesn't exist
 	target_path.mkdir(parents=True, exist_ok=True)
@@ -206,21 +202,15 @@ def handle_extraction(dep):
 
 	# 5. Clean up the temporary directory
 	print(f"   Cleaning up temporary directory: {tmp_path}")
-	
-	# --- MODIFIED CLEANUP BLOCK ---
-	MAX_RETRIES = 5
-	for attempt in range(MAX_RETRIES):
-		try:
-			shutil.rmtree(tmp_path)
-			print("   Cleanup successful.")
-			break  # Exit the loop if cleanup succeeds
-		except PermissionError as e:
-			if attempt < MAX_RETRIES - 1:
-				print(f"   ⚠️ Cleanup failed (Attempt {attempt + 1}/{MAX_RETRIES}). Retrying in 0.5s...")
-				time.sleep(0.5)
-			else:
-				print("   ❌ Cleanup failed after all retries.")
-				raise e # Re-raise the error if all retries fail, stopping the script.
+	try:
+		# Use the onerror handler for robust deletion on Windows
+		shutil.rmtree(tmp_path, onerror=handle_remove_readonly)
+		print("   Cleanup successful.")
+	except Exception as e:
+		print(f"   ❌ Final cleanup failed with error: {e}")
+		raise # Re-raise the error if final cleanup fails
+		
+	return False
 
 def final_git_update():
 	"""Runs the final git submodule sync and update commands."""
@@ -232,6 +222,20 @@ def final_git_update():
 	print("✨ Dependency installation complete!")
 
 # --- Main Execution ---
+
+def handle_remove_readonly(func, path, exc_info):
+	"""
+	Error handler for shutil.rmtree on Windows.
+	If the file is readonly, change its permission and retry.
+	"""
+	# Check if the error is Access Denied (often happens with Git files)
+	if func in (os.rmdir, os.remove, os.unlink) and exc_info[1].winerror == 5:
+		# Change file permissions to writable
+		os.chmod(path, stat.S_IWUSR | stat.S_IREAD)
+		func(path)
+	else:
+		# Raise the exception if it's not a permission issue
+		raise
 
 def main():
 	"""Main function to iterate through and manage all dependencies."""
