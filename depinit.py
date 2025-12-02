@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import shutil
+import stat # Required for changing file permissions
 
 # --- Configuration ---
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -41,9 +42,22 @@ SUBMODULE_CONFIG = [
 	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['build']},
 	
 	# LZO: Uses manual clone/copy to guarantee file presence before partial cleanup
-	{'name': 'lzo', 'path': 'vendor/lzo-2.10/tmp', 'url': 'https://github.com/synaptseal/lzo-2.10', 
+	{'name': 'lzo', 'path': 'vendor/lzo-2.10', 'url': 'https://github.com/synaptseal/lzo-2.10', 
 	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['include/lzo', 'src', 'CMakeLists.txt'], 'manual_clone_restructure': True},
 ]
+
+# --- Helper function to handle read-only files for rmtree on Windows ---
+def handle_remove_readonly(func, path, exc_info):
+	"""
+	Error handler for shutil.rmtree on Windows. If the error is an 
+	Access Denied (usually a read-only file), this changes permissions and retries.
+	"""
+	# Check if the error is "Permission denied" (Windows)
+	if func in (os.remove, os.rmdir) and exc_info[1].winerror == 5: # WinError 5: Access is denied
+		os.chmod(path, stat.S_IWUSR) # Change file to writable
+		func(path) # Retry the operation
+	else:
+		raise
 
 def run_git_command(command, error_message):
 	"""Executes a subprocess command in the project root."""
@@ -68,10 +82,10 @@ def restructure_lzo(full_path, dep_url):
 	# 1. Define temporary clone directory and clean any old artifacts
 	temp_clone_dir = os.path.join(full_path, 'temp_clone')
 	if os.path.exists(temp_clone_dir):
-		shutil.rmtree(temp_clone_dir)
+		# Use the robust error handler here
+		shutil.rmtree(temp_clone_dir, onerror=handle_remove_readonly)
 
 	# 2. Manually clone the repository into the temporary subdirectory
-	# We use subprocess.run directly, not run_git_command, as this is a temporary, internal operation.
 	try:
 		print(f"   - Cloning source into temporary directory: {os.path.basename(temp_clone_dir)}")
 		subprocess.run(
@@ -114,7 +128,8 @@ def restructure_lzo(full_path, dep_url):
 		# Unclassified files are ignored (stay in temp and are deleted)
 			
 	# 5. Cleanup the temporary clone
-	shutil.rmtree(temp_clone_dir)
+	# Use the robust error handler here as well
+	shutil.rmtree(temp_clone_dir, onerror=handle_remove_readonly)
             
 	print(f"   -> LZO restructuring complete. {files_copied} files copied into target directories.")
 
@@ -161,6 +176,7 @@ def initialize_dependency(dep):
 					f"Failed to clean {path}."
 				)
 			except Exception as e:
+				# Use robust handler for temp file cleanup too
 				if needs_restore and os.path.exists(temp_file_path):
 					print(f" ⚠️ WARNING: Restore file needed after error. Attempting to restore custom file...")
 					shutil.move(temp_file_path, custom_file)
@@ -233,7 +249,8 @@ def initialize_dependency(dep):
 					print(f"   [WARNING] Item not found during partial cleanup: {item}. Skipping.") 
 			
 			# B. DELETE the ENTIRE source folder (removes the cloned repository)
-			shutil.rmtree(full_path)
+			# Use robust deletion here too, just in case
+			shutil.rmtree(full_path, onerror=handle_remove_readonly)
 			
 			# C. RECREATE the submodule base directory
 			os.makedirs(full_path) 
@@ -255,14 +272,15 @@ def initialize_dependency(dep):
 		finally:
 			# E. Clean up the temporary folder
 			if os.path.exists(temp_dir):
-				shutil.rmtree(temp_dir)
+				# Use robust deletion here too
+				shutil.rmtree(temp_dir, onerror=handle_remove_readonly)
 			
 		print(f"   -> Partial cleanup of {dep['name']} complete. Remaining files confirmed.")
 	# 3.2 CLEANUP (Delete source folder if required)
 	elif dep['cleanup']:
 		print(f"   -> Cleaning up source directory {path}...")
 		try:
-			shutil.rmtree(full_path)
+			shutil.rmtree(full_path, onerror=handle_remove_readonly)
 		except Exception as e:
 			print(f" ⚠️ WARNING: Could not remove directory {path}: {e}")
 
