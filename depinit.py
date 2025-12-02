@@ -110,14 +110,19 @@ def initialize_dependency(dep):
 			f"Failed to update existing submodule: {path}"
 		)
 
-		# --- NEW CODE: Force file refresh for kept/partial submodules (LZO, DXMath, Cryptopp, etc.) ---
-		# This ensures all source files are physically present before restructuring/cleanup
+		# --- NEW AGGRESSIVE FILE REFRESH (Crucial for LZO/DXMath) ---
+		# This ensures all source files are physically present by resetting the working tree.
 		if dep['cleanup'] in (False, 'partial'): 
-			print(f"  -> Forcing file checkout in {path}...")
-			# This command restores all source files from the commit tracked by the submodule
+			print(f"  -> Forcing full file refresh and cleanup in {path}...")
+			# 1. Hard reset to the tracked commit (forces correct version checkout)
 			run_git_command(
-				["git", "-C", full_path, "checkout", "."], 
-				f"Failed to checkout files in {path}."
+				["git", "-C", full_path, "reset", "--hard", "HEAD"], 
+				f"Failed to hard reset {path}."
+			)
+			# 2. Clean up untracked files/directories (removes our empty folders and other junk)
+			run_git_command(
+				["git", "-C", full_path, "clean", "-fdx"], 
+				f"Failed to clean {path}."
 			)
 	else:
 		# Case 2: Directory is missing -> Run `add` to fix index and clone
