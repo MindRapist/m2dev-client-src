@@ -177,8 +177,21 @@ def handle_extraction(dep):
 
 	# 5. Clean up the temporary directory
 	print(f"   Cleaning up temporary directory: {tmp_path}")
-	shutil.rmtree(tmp_path)
-	return False # Never treated as a 'new' submodule
+	
+	# --- MODIFIED CLEANUP BLOCK ---
+	MAX_RETRIES = 5
+	for attempt in range(MAX_RETRIES):
+		try:
+			shutil.rmtree(tmp_path)
+			print("   Cleanup successful.")
+			break  # Exit the loop if cleanup succeeds
+		except PermissionError as e:
+			if attempt < MAX_RETRIES - 1:
+				print(f"   ⚠️ Cleanup failed (Attempt {attempt + 1}/{MAX_RETRIES}). Retrying in 0.5s...")
+				time.sleep(0.5)
+			else:
+				print("   ❌ Cleanup failed after all retries.")
+				raise e # Re-raise the error if all retries fail, stopping the script.
 
 def final_git_update():
 	"""Runs the final git submodule sync and update commands."""
