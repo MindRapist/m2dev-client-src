@@ -69,10 +69,10 @@ if (EXISTS "${CMAKE_SOURCE_DIR}/.git")
 	find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
 	# 2. Execute the dependency initialization script
-	message(STATUS "Running client dependency initialization script (depinit_client.py)...")
+	message(STATUS "Running client dependency initialization script (depinit.py)...")
 
 	execute_process(
-		COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/depinit_client.py"
+		COMMAND ${Python3_EXECUTABLE} "${CMAKE_CURRENT_SOURCE_DIR}/depinit.py"
 		# Ensure execution happens in the project root for Git commands
 		WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" 
 		RESULT_VARIABLE DEP_INIT_RESULT

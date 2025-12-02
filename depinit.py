@@ -35,7 +35,7 @@ SUBMODULE_CONFIG = [
 
 	# --- Category 2: Full Submodules (5 Dependencies) ---
 	# These are cloned and KEPT for consumption by add_subdirectory().
-	{'name': 'Cryptopp', 'path': 'vendor/cryptopp/src', 'url': 'https://github.com/weidai11/cryptopp', 
+	{'name': 'Cryptopp', 'path': 'vendor/cryptopp', 'url': 'https://github.com/weidai11/cryptopp', 
 	 'copy': [], 'cleanup': False, 'nested_include': False},
 	{'name': 'mio', 'path': 'vendor/mio', 'url': 'https://github.com/vimpunk/mio', 
 	 'copy': [], 'cleanup': False, 'nested_include': False},
