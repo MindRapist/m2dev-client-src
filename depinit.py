@@ -4,7 +4,8 @@ import os
 import subprocess
 import sys
 import shutil
-import stat # Required for changing file permissions
+import stat
+import time # <<< NEW: Added for file handle release delay
 
 # --- Configuration ---
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -94,6 +95,9 @@ def restructure_lzo(full_path, dep_url):
 			stdout=sys.stdout,
 			stderr=sys.stderr
 		)
+		# <<< NEW FIX: Add a small delay for OS file handle release on Windows >>>
+		time.sleep(1)
+		
 	except subprocess.CalledProcessError:
 		print(f"❌ FATAL ERROR: Failed to manually clone LZO into {temp_clone_dir}")
 		sys.exit(1)
