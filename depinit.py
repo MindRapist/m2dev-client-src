@@ -93,16 +93,19 @@ DEPENDENCIES = [
 def run_git_command(command, check_error=True):
 	"""Executes a git command and handles errors."""
 	try:
+		# NOTE: We now use command as a list of arguments, not a single string.
+		# This requires adjusting how it's called in handle_submodule.
 		subprocess.run(
 			command,
 			check=check_error,
-			shell=True,
+			# shell=True is removed for security/portability
 			stdout=subprocess.PIPE,
 			stderr=subprocess.PIPE,
 			text=True
 		)
 	except subprocess.CalledProcessError as e:
-		print(f"❌ ERROR: Git command failed: {' '.join(command.split())}")
+		# Convert list back to string for clean error reporting
+		print(f"❌ ERROR: Git command failed: {' '.join(command)}")
 		print(f"Stderr: {e.stderr}")
 		if check_error:
 			raise
@@ -111,18 +114,28 @@ def handle_submodule(dep):
 	"""Adds or updates a dependency as a standard Git submodule."""
 	target_path = Path(dep["target_dir"])
 	repo_url = dep["repo"]
-
-	# 1. Check if submodule already exists
-	if target_path.exists() and (Path(".gitmodules").exists() and target_path.name in Path(".gitmodules").read_text()):
+	
+	# 1. Check if the directory exists AND if Git recognizes it as a submodule path
+	# We use a cleaner check: If the directory exists AND it's tracked in .gitmodules
+	is_submodule_tracked = False
+	if Path(".gitmodules").exists():
+		# Check if the target directory path is in the .gitmodules file
+		gitmodules_content = Path(".gitmodules").read_text()
+		if dep['target_dir'] in gitmodules_content:
+			is_submodule_tracked = True
+			
+	if is_submodule_tracked:
 		print(f"🔄 Updating submodule: {dep['name']}...")
-		run_git_command(f"git submodule update --remote -- '{dep['target_dir']}'")
+		# Now pass the command as a list of strings
+		command = ["git", "submodule", "update", "--remote", "--", dep['target_dir']]
+		run_git_command(command)
 		return False # No new submodule was added
 	
-	# 2. Add the submodule
+	# 2. Add the submodule (only runs if not tracked in .gitmodules)
 	print(f"➕ Adding submodule: {dep['name']}...")
-	# NOTE: We use --depth 1 for initial clone speed, but --depth 0 (full history) 
-	# is often better for flexibility (rollback capability). Sticking to full history for your stated goal.
-	run_git_command(f"git submodule add --force {repo_url} {dep['target_dir']}")
+	# Add command as a list
+	command = ["git", "submodule", "add", "--force", repo_url, dep['target_dir']]
+	run_git_command(command)
 	return True # New submodule was added
 
 def handle_extraction(dep):
