@@ -589,6 +589,12 @@ if (MSVC AND NOT DISABLE_ASM)
       set_source_files_properties(${cryptopp_SOURCES_ASM} PROPERTIES COMPILE_DEFINITIONS "_M_X86" COMPILE_FLAGS "/safeseh")
     endif ()
     set_source_files_properties(${cryptopp_SOURCES_ASM} PROPERTIES LANGUAGE ASM_MASM)
+
+    # Prevent C/C++ compile options from being forwarded to MASM (ml64)
+    # Clear per-ASM-file COMPILE_FLAGS so ml64 is not passed invalid flags.
+    foreach(_asm ${cryptopp_SOURCES_ASM})
+      set_source_files_properties(${_asm} PROPERTIES COMPILE_FLAGS "")
+    endforeach()
   endif ()
 endif ()
 
