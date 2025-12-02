@@ -109,6 +109,16 @@ def initialize_dependency(dep):
 			["git", "submodule", "update", "--init", "--force", path], 
 			f"Failed to update existing submodule: {path}"
 		)
+
+		# --- NEW CODE: Force file refresh for kept/partial submodules (LZO, DXMath, Cryptopp, etc.) ---
+		# This ensures all source files are physically present before restructuring/cleanup
+		if dep['cleanup'] in (False, 'partial'): 
+			print(f"  -> Forcing file checkout in {path}...")
+			# This command restores all source files from the commit tracked by the submodule
+			run_git_command(
+				["git", "-C", full_path, "checkout", "."], 
+				f"Failed to checkout files in {path}."
+			)
 	else:
 		# Case 2: Directory is missing -> Run `add` to fix index and clone
 		print(f"   -> Adding missing submodule: {path}")
