@@ -45,7 +45,7 @@ SUBMODULE_CONFIG = [
 	{'name': 'DirectXMath', 'path': 'vendor/DirectXMath', 'url': 'https://github.com/microsoft/DirectXMath', 
 	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['build']}, # Copy 'build' to itself (keep source)
 	{'name': 'lzo', 'path': 'vendor/lzo-2.10', 'url': 'https://github.com/synaptseal/lzo-2.10', 
-	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['include/lzo', 'src', 'CMakeLists.txt']}, # Copy 'include/lzo' & 'src' to itself (keep source)
+	 'copy': [], 'cleanup': 'partial', 'preserve_parts': ['include/lzo', 'src', 'CMakeLists.txt'], 'restructure': True}, # Maintain LZO includes, source files and initial CMakeLists.txt
 ]
 
 def run_git_command(command, error_message):
@@ -62,6 +62,39 @@ def run_git_command(command, error_message):
 	except (subprocess.CalledProcessError, FileNotFoundError):
 		print(f"❌ FATAL ERROR: {error_message}")
 		sys.exit(1)
+
+# --- New function to handle LZO's flat structure ---
+def restructure_lzo(full_path):
+	"""Creates the include/lzo and src folders and moves LZO's flat files into them."""
+	print("   -> Restructuring LZO source files for CMake compatibility...")
+	
+	# 1. Define target directories
+	lzo_include_dir = os.path.join(full_path, 'include', 'lzo')
+	lzo_src_dir = os.path.join(full_path, 'src')
+	
+	os.makedirs(lzo_include_dir, exist_ok=True)
+	os.makedirs(lzo_src_dir, exist_ok=True)
+	
+	# 2. Find and move files
+	files_moved = 0
+	
+	for item in os.listdir(full_path):
+		# Ignore custom files and git metadata
+		if item in ('CMakeLists.txt', '.git', '.gitignore', 'include', 'src', 'temp_lzo'):
+			continue
+		if os.path.isdir(os.path.join(full_path, item)):
+			continue
+			
+		if item.endswith(('.h', '.H')):
+			# Move all headers to include/lzo
+			shutil.move(os.path.join(full_path, item), os.path.join(lzo_include_dir, item))
+			files_moved += 1
+		elif item.endswith(('.c', '.C')):
+			# Move all source files to src
+			shutil.move(os.path.join(full_path, item), os.path.join(lzo_src_dir, item))
+			files_moved += 1
+			
+	print(f"   -> LZO restructuring complete. {files_moved} files moved.")
 
 def initialize_dependency(dep):
 	"""Adds or updates a single dependency and handles file operations."""
@@ -86,44 +119,32 @@ def initialize_dependency(dep):
 
 	# 2. FILE COPY/MOVE OPERATIONS
 	if dep['copy']:
-		# Destination folder for all copied files (e.g., extern/include)
+		# Since only cleanup:True repos have 'copy', the destination is always extern/include
 		include_path = os.path.join(PROJECT_ROOT, INCLUDE_DIR)
 		os.makedirs(include_path, exist_ok=True)
 		
-		# Check if this is a 'Keep' repo that only copies files internally (DirectXMath/lzo)
-		# Otherwise, copy to the central 'extern/include' folder.
-		copy_dest = full_path if not dep['cleanup'] else include_path
-
-		print(f"   -> Copying files for {dep['name']}...")
+		print(f"   -> Copying files for {dep['name']} to {INCLUDE_DIR}/...")
 		
 		for file_or_folder_rel in dep['copy']:
-			# Handle nested paths like 'include/argparse/argparse.hpp' or 'include/lzo'
 			source_src = os.path.join(full_path, file_or_folder_rel)
 			
-			# --- Determine Destination Name ---
-			# Use the last part of the path for extern/include/ (e.g., 'argparse.hpp')
-			if dep['cleanup']:
-				dst_name = os.path.basename(file_or_folder_rel)
-			# For KEEP repos (lzo/DirectXMath), the dest name must preserve the path structure
-			else:
-				dst_name = file_or_folder_rel 
-
-			copy_dst_path = os.path.join(copy_dest, dst_name)
-
+			# Destination is always extern/include/basename_of_file
+			copy_dst_path = os.path.join(include_path, os.path.basename(file_or_folder_rel))
+			
 			if not os.path.exists(source_src):
 				 print(f"   [WARNING] Source not found: {source_src}. Skipping.")
 				 continue
 
 			if os.path.isdir(source_src):
-				# Handles copying entire folders (rapidjson, wil, lzo/include/lzo)
 				print(f"   - Copying folder: {os.path.basename(source_src)}...")
 				shutil.copytree(source_src, copy_dst_path, dirs_exist_ok=True)
 			else:
-				# Handles copying single files (stb, argparse, miniaudio)
 				print(f"   - Copying file: {os.path.basename(file_or_folder_rel)}")
-				# Ensure parent directories exist for complex file paths (e.g., argparse/argparse.hpp)
 				os.makedirs(os.path.dirname(copy_dst_path), exist_ok=True)
 				shutil.copy2(source_src, copy_dst_path)
+
+	if dep.get('restructure') and dep['name'] == 'lzo':
+		restructure_lzo(full_path)
 
 	# 3.1 PARTIAL CLEANUP (For DirectXMath and LZO)
 	if dep['cleanup'] == 'partial':
