@@ -40,7 +40,7 @@ DEPENDENCIES = [
 		"type": "extract",
 		"repo": "https://github.com/microsoft/DirectXMath",
 		"target_dir": "vendor/DirectXMath",
-		"extract": [("", "build")], # (source_in_repo, target_in_dest)
+		"extract": [("build", ".")], # (source_in_repo, target_in_dest)
 	},
 	{
 		"name": "stb",
@@ -167,7 +167,11 @@ def handle_extraction(dep):
 			target_item.unlink()
 		elif target_item.is_dir():
 			print(f"   Deleting old folder: {target_item}")
-			shutil.rmtree(target_item)
+			try:
+				shutil.rmtree(target_item, onerror=handle_remove_readonly)
+			except Exception as e:
+				print(f"   ❌ ERROR during target cleanup for {target_item}: {e}")
+				raise # Propagate the error to halt the script
 	
 	# 2. Clone into a temporary directory
 	print(f"   Cloning into temporary directory: {tmp_path}")
@@ -181,13 +185,22 @@ def handle_extraction(dep):
 	# 4. Move/Copy files/folders
 	for src_in_repo, dest_in_target in dep["extract"]:
 		source = tmp_path / src_in_repo
+
+		# --- SPECIAL HANDLING FOR DirectXMath ---
+		if dep["name"] == "DirectXMath" and src_in_repo == "build" and dest_in_target == ".":
+			print(f"   Copying CONTENTS of DirectXMath/build to {target_path}")
+			for item in source.iterdir():
+				if item.is_file():
+					shutil.copy2(item, target_path / item.name)
+			continue
+
 		# Determine the final destination path
 		if dest_in_target == ".":
 			# If destination is '.', use the source's name as the final name
 			destination = target_path / source.name
 		else:
 			destination = target_path / dest_in_target
-		
+
 		# Move or copy the item
 		if source.exists():
 			print(f"   Copying {source.name} to {destination}")
