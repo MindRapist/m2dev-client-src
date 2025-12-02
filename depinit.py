@@ -5,7 +5,7 @@ import subprocess
 import sys
 import shutil
 import stat
-import time # <<< NEW: Added for file handle release delay
+import time 
 
 # --- Configuration ---
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -13,7 +13,6 @@ PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 INCLUDE_DIR = "extern/include" 
 
 # Define all 11 dependencies and their unique rules
-# Format: ('name', 'path', 'url', [files_to_copy], should_cleanup)
 
 SUBMODULE_CONFIG = [
 	# --- Category 1: Header-Only / Copy & Cleanup (6 Dependencies) ---
@@ -82,9 +81,19 @@ def restructure_lzo(full_path, dep_url):
 	
 	# 1. Define temporary clone directory and clean any old artifacts
 	temp_clone_dir = os.path.join(full_path, 'temp_clone')
+
 	if os.path.exists(temp_clone_dir):
-		# Use the robust error handler here
-		shutil.rmtree(temp_clone_dir, onerror=handle_remove_readonly)
+		# Attempt robust deletion with retry for old artifacts
+		for i in range(5):
+			try:
+				print(f"   - Attempting to clean old temp directory (Attempt {i+1}/5)...")
+				shutil.rmtree(temp_clone_dir, onerror=handle_remove_readonly)
+				break
+			except OSError as e:
+				if i == 4:
+					print(f"❌ FATAL ERROR: Failed to clean old temp directory after 5 attempts.")
+					raise e
+				time.sleep(0.5)
 
 	# 2. Manually clone the repository into the temporary subdirectory
 	try:
@@ -95,7 +104,7 @@ def restructure_lzo(full_path, dep_url):
 			stdout=sys.stdout,
 			stderr=sys.stderr
 		)
-		# <<< NEW FIX: Add a small delay for OS file handle release on Windows >>>
+		# Add a small delay for OS file handle release on Windows
 		time.sleep(1)
 		
 	except subprocess.CalledProcessError:
@@ -132,8 +141,17 @@ def restructure_lzo(full_path, dep_url):
 		# Unclassified files are ignored (stay in temp and are deleted)
 			
 	# 5. Cleanup the temporary clone
-	# Use the robust error handler here as well
-	shutil.rmtree(temp_clone_dir, onerror=handle_remove_readonly)
+	# Attempt robust deletion with retry for the clone we just made
+	for i in range(5):
+		try:
+			print(f"   - Attempting to delete temp clone (Attempt {i+1}/5)...")
+			shutil.rmtree(temp_clone_dir, onerror=handle_remove_readonly)
+			break
+		except OSError as e:
+			if i == 4:
+				print(f"❌ FATAL ERROR: Failed to delete temp clone after 5 attempts.")
+				raise e
+			time.sleep(0.5)
             
 	print(f"   -> LZO restructuring complete. {files_copied} files copied into target directories.")
 
@@ -253,9 +271,18 @@ def initialize_dependency(dep):
 					print(f"   [WARNING] Item not found during partial cleanup: {item}. Skipping.") 
 			
 			# B. DELETE the ENTIRE source folder (removes the cloned repository)
-			# Use robust deletion here too, just in case
-			shutil.rmtree(full_path, onerror=handle_remove_readonly)
-			
+			# Use robust deletion with retry
+			for i in range(5):
+				try:
+					print(f"   - Attempting to delete source folder (Attempt {i+1}/5)...")
+					shutil.rmtree(full_path, onerror=handle_remove_readonly)
+					break
+				except OSError as e:
+					if i == 4:
+						print(f"❌ FATAL ERROR: Failed to delete source folder after 5 attempts.")
+						raise e
+					time.sleep(0.5)
+
 			# C. RECREATE the submodule base directory
 			os.makedirs(full_path) 
 
@@ -276,8 +303,17 @@ def initialize_dependency(dep):
 		finally:
 			# E. Clean up the temporary folder
 			if os.path.exists(temp_dir):
-				# Use robust deletion here too
-				shutil.rmtree(temp_dir, onerror=handle_remove_readonly)
+				# Use robust deletion with retry
+				for i in range(5):
+					try:
+						print(f"   - Attempting to delete temp cleanup folder (Attempt {i+1}/5)...")
+						shutil.rmtree(temp_dir, onerror=handle_remove_readonly)
+						break
+					except OSError as e:
+						if i == 4:
+							print(f"❌ FATAL ERROR: Failed to delete temp cleanup folder after 5 attempts.")
+							raise e
+						time.sleep(0.5)
 			
 		print(f"   -> Partial cleanup of {dep['name']} complete. Remaining files confirmed.")
 	# 3.2 CLEANUP (Delete source folder if required)
