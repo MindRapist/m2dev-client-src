@@ -652,6 +652,39 @@ namespace UI
 		m_pRightCaptureWindow = NULL;
 	}
 
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+	void CWindowManager::ClearStoredSlotCoolTimeInAllSlotWindows(DWORD dwKey, DWORD dwSlotIndex)
+	{
+		// recursively walk the window tree starting from layers and clear stored cooldown entries
+		std::function<void(CWindow*)> recurse;
+
+		recurse = [&](CWindow* pWin)
+		{
+			if (!pWin)
+				return;
+
+			// If this is a slot window, call its helper
+			if (pWin->IsType(UI::CSlotWindow::Type()))
+			{
+				UI::CSlotWindow * pSlotWin = static_cast<UI::CSlotWindow*>(pWin);
+				pSlotWin->ClearStoredSlotCoolTime(dwKey, dwSlotIndex);
+			}
+
+			// Visit children
+			for (CWindow* pChild : pWin->GetChildList())
+			{
+				recurse(pChild);
+			}
+		};
+
+		// Walk all layer roots
+		for (CWindow* pLayer : m_LayerWindowList)
+		{
+			recurse(pLayer);
+		}
+	}
+#endif
+
 	void CWindowManager::SetResolution(int hres, int vres)
 	{
 		if (hres<=0 || vres<=0)

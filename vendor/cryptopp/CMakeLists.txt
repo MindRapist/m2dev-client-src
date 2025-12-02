@@ -35,18 +35,18 @@ cmake_minimum_required(VERSION 3.10)
 if (${CMAKE_VERSION} VERSION_LESS "3.0.0")
   project(cryptopp)
   set(cryptopp_VERSION_MAJOR 8)
-  set(cryptopp_VERSION_MINOR 6)
+  set(cryptopp_VERSION_MINOR 9)
   set(cryptopp_VERSION_PATCH 0)
 else ()
   cmake_policy(SET CMP0048 NEW)
-  project(cryptopp VERSION 8.6.0)
+  project(cryptopp VERSION 8.9.0)
   if (NOT ${CMAKE_VERSION} VERSION_LESS "3.1.0")
     cmake_policy(SET CMP0054 NEW)
   endif ()
 endif ()
 
 # Need to set SRC_DIR manually after removing the Python library code.
-set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 # Make RelWithDebInfo the default (it does e.g. add '-O2 -g -DNDEBUG' for GNU)
 #   If not in multi-configuration environments, no explicit build type or CXX
@@ -55,7 +55,7 @@ if (NOT CMAKE_CONFIGURATION_TYPES AND
     NOT CMAKE_NO_BUILD_TYPE AND
     NOT CMAKE_BUILD_TYPE AND
     NOT CMAKE_CXX_FLAGS AND
-    CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR/src)
   set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif ()
 

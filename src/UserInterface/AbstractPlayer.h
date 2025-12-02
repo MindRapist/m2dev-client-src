@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AbstractSingleton.h"
+#include "GameType.h"
 
 class CInstanceBase;
 

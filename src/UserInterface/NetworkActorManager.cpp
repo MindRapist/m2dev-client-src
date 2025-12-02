@@ -536,6 +536,41 @@ void CNetworkActorManager::MoveActor(const SNetworkMoveActorData& c_rkNetMoveAct
 	rkNetActorData.m_fRot=c_rkNetMoveActorData.m_fRot;		
 }
 
+#ifdef FIX_POS_SYNC
+void CNetworkActorManager::AttackActor(DWORD dwVID, DWORD dwAttacakerVID, LONG lDestPosX, LONG lDestPosY, const TPixelPosition& k_pSyncPos, DWORD dwBlendDuration)
+{
+	std::map<DWORD, SNetworkActorData>::iterator f = m_kNetActorDict.find(dwVID);
+	if (m_kNetActorDict.end() == f)
+	{
+		return;
+	}
+
+	SNetworkActorData& rkNetActorData = f->second;
+
+	if (k_pSyncPos.x && k_pSyncPos.y) {
+		CInstanceBase* pkInstFind = __FindActor(rkNetActorData);
+
+		if (pkInstFind)
+		{
+			const bool bProcessingClientAttack = pkInstFind->ProcessingClientAttack(dwAttacakerVID);
+			pkInstFind->ServerAttack(dwAttacakerVID);
+
+			// if already blending, update
+			if (bProcessingClientAttack && pkInstFind->IsPushing() && pkInstFind->GetBlendingRemainTime() > 0.15) {
+				pkInstFind->SetBlendingPosition(k_pSyncPos, pkInstFind->GetBlendingRemainTime());
+			}
+			else {
+				// otherwise sync
+				//pkInstFind->SCRIPT_SetPixelPosition(k_pSyncPos.x, k_pSyncPos.y);
+				pkInstFind->NEW_SyncPixelPosition(k_pSyncPos, dwBlendDuration);
+			}
+		}
+
+		rkNetActorData.SetPosition(long(k_pSyncPos.x), long(k_pSyncPos.y));
+	}
+}
+#endif
+
 void CNetworkActorManager::SyncActor(DWORD dwVID, LONG lPosX, LONG lPosY)
 {
 	std::map<DWORD, SNetworkActorData>::iterator f=m_kNetActorDict.find(dwVID);

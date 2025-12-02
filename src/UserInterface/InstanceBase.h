@@ -633,6 +633,11 @@ class CInstanceBase
 		bool					NEW_AttackToDestInstanceDirection(CInstanceBase& rkInstDst, IFlyEventHandler* pkFlyHandler);
 		bool					NEW_AttackToDestInstanceDirection(CInstanceBase& rkInstDst);
 
+#ifdef FIX_POS_SYNC
+		void					ServerAttack(DWORD dwVID);
+		bool					ProcessingClientAttack(DWORD dwVID);
+#endif
+
 		bool					NEW_MoveToDestPixelPositionDirection(const TPixelPosition& c_rkPPosDst);
 		void					NEW_MoveToDestInstanceDirection(CInstanceBase& rkInstDst);
 		void					NEW_MoveToDirection(float fDirRot);

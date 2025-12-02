@@ -127,6 +127,10 @@ class CNetworkActorManager : public CReferenceObject
 		void UpdateActor(const SNetworkUpdateActorData& c_rkNetUpdateActorData);
 		void MoveActor(const SNetworkMoveActorData& c_rkNetMoveActorData);
 
+#ifdef FIX_POS_SYNC
+		void AttackActor(DWORD dwVID, DWORD dwAttacakerVID, LONG lDestPosX, LONG lDestPosY, const TPixelPosition& k_pSyncPos, DWORD dwBlendDuration);
+#endif
+
 		void SyncActor(DWORD dwVID, LONG lPosX, LONG lPosY);
 		void SetActorOwner(DWORD dwOwnerVID, DWORD dwVictimVID);
 

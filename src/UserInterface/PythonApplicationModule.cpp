@@ -1496,9 +1496,16 @@ void initapp()
 #else
 	PyModule_AddIntConstant(poModule, "FIX_MESSENGER_ACTION_SYNC", 0);
 #endif
+
 #ifdef FIX_REFRESH_SKILL_COOLDOWN
 	PyModule_AddIntConstant(poModule, "FIX_REFRESH_SKILL_COOLDOWN", 1);
 #else
 	PyModule_AddIntConstant(poModule, "FIX_REFRESH_SKILL_COOLDOWN", 0);
+#endif
+
+#ifdef FIX_HORSE_SKILLS_TAB
+	PyModule_AddIntConstant(poModule, "FIX_HORSE_SKILLS_TAB", 1);
+#else
+	PyModule_AddIntConstant(poModule, "FIX_HORSE_SKILLS_TAB", 0);
 #endif
 }

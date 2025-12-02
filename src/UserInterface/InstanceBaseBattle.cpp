@@ -410,6 +410,18 @@ bool CInstanceBase::NEW_AttackToDestInstanceDirection(CInstanceBase& rkInstDst)
 	return true;
 }
 
+#ifdef FIX_POS_SYNC
+void CInstanceBase::ServerAttack(DWORD dwVID)
+{
+	m_GraphicThingInstance.ServerAttack(dwVID);
+}
+
+bool CInstanceBase::ProcessingClientAttack(DWORD dwVID)
+{
+	return m_GraphicThingInstance.ProcessingClientAttack(dwVID);
+}
+#endif
+
 void CInstanceBase::AttackProcess()
 {
 	if (!m_GraphicThingInstance.CanCheckAttacking())

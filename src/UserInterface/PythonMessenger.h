@@ -1,5 +1,7 @@
 #pragma once
 
+#include <set>
+
 class CPythonMessenger : public CSingleton<CPythonMessenger>
 {
 	public:

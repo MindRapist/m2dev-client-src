@@ -88,6 +88,9 @@ namespace UI
 
 			// Manage Slot
 			void SetSlotType(DWORD dwType);
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+			DWORD GetSlotType() const;
+#endif
 			void SetSlotStyle(DWORD dwStyle);
 
 			void AppendSlot(DWORD dwIndex, int ixPosition, int iyPosition, int ixCellSize, int iyCellSize);
@@ -158,6 +161,10 @@ namespace UI
 
 			// CallBack
 			void ReserveDestroyCoolTimeFinishEffect(DWORD dwSlotIndex);
+
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+			void ClearStoredSlotCoolTime(DWORD dwKey, DWORD dwSlotIndex);
+#endif
 
 		protected:
 			void __Initialize();
