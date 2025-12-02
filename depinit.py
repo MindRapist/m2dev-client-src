@@ -107,7 +107,7 @@ def run_git_command(command, check_error=True):
 		)
 	except subprocess.CalledProcessError as e:
 		# Convert list back to string for clean error reporting
-		print(f"❌ ERROR: Git command failed: {' '.join(command)}")
+		print(f"[ERROR] ERROR: Git command failed: {' '.join(command)}")
 		print(f"Stderr: {e.stderr}")
 		if check_error:
 			raise
@@ -127,14 +127,14 @@ def handle_submodule(dep):
 			is_submodule_tracked = True
 			
 	if is_submodule_tracked:
-		print(f"🔄 Updating submodule: {dep['name']}...")
+		print(f"[UPDATE] Updating submodule: {dep['name']}...")
 		# Now pass the command as a list of strings
 		command = ["git", "submodule", "update", "--remote", "--", dep['target_dir']]
 		run_git_command(command)
 		return False # No new submodule was added
 	
 	# 2. Add the submodule (only runs if not tracked in .gitmodules)
-	print(f"➕ Adding submodule: {dep['name']}...")
+	print(f"[NEW] Adding submodule: {dep['name']}...")
 	# Add command as a list
 	command = ["git", "submodule", "add", "--force", repo_url, dep['target_dir']]
 	run_git_command(command)
@@ -147,7 +147,7 @@ def handle_extraction(dep):
 	target_path = Path(dep["target_dir"])
 	tmp_path = Path(f".tmp_{name}") # Use a unique temp directory
 
-	print(f"🔄 Managing extraction dependency: {name}...")
+	print(f"[UPDATE] Managing extraction dependency: {name}...")
 
 	if tmp_path.exists():
 		print(f"   Pre-cleanup: Deleting stale temporary directory: {tmp_path}")
@@ -155,7 +155,7 @@ def handle_extraction(dep):
 			shutil.rmtree(tmp_path, onerror=handle_remove_readonly)
 			print("   Cleanup successful.")
 		except Exception as e:
-			print(f"   ❌ Final cleanup failed with error: {e}")
+			print(f"   [ERROR] Final cleanup failed with error: {e}")
 			raise
 
 	# 1. Clean up existing files in the target directory that will be replaced
@@ -198,7 +198,7 @@ def handle_extraction(dep):
 				# For single files (like stb, pcg-cpp)
 				shutil.copy2(source, destination)
 		else:
-			 print(f"   ⚠️ WARNING: Source path not found in temporary repo: {source}")
+			 print(f"   [WARNING] Source path not found in temporary repo: {source}")
 
 	# 5. Clean up the temporary directory
 	print(f"   Cleaning up temporary directory: {tmp_path}")
@@ -207,7 +207,7 @@ def handle_extraction(dep):
 		shutil.rmtree(tmp_path, onerror=handle_remove_readonly)
 		print("   Cleanup successful.")
 	except Exception as e:
-		print(f"   ❌ Final cleanup failed with error: {e}")
+		print(f"   [ERROR] Final cleanup failed with error: {e}")
 		raise # Re-raise the error if final cleanup fails
 		
 	return False
@@ -219,7 +219,7 @@ def final_git_update():
 	run_git_command("git submodule sync")
 	print("Running 'git submodule update --init --recursive'")
 	run_git_command("git submodule update --init --recursive")
-	print("✨ Dependency installation complete!")
+	print("[DONE] Dependency installation complete!")
 
 # --- Main Execution ---
 
