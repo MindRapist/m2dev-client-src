@@ -14,6 +14,7 @@ DEPENDENCIES = [
 		"type": "extract",
 		"repo": "https://github.com/weidai11/cryptopp",
 		"target_dir": "vendor/cryptopp",
+		"extract": [],
 	},
 	{
 		"name": "mio",
