@@ -189,7 +189,7 @@ def handle_extraction(dep):
 		tmp_dir = tmp_path
 		target_root = target_path # vendor/cryptopp
 		
-		print("	Clearing old CryptoPP source files...")
+		print("   Clearing old CryptoPP source files...")
 		# Clean up old source files safely, avoiding your custom CMakeLists.txt
 		for item in target_root.iterdir():
 			if item.is_file() and item.name != "CMakeLists.txt":
