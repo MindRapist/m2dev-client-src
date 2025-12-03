@@ -184,8 +184,37 @@ def handle_extraction(dep):
 	target_path.mkdir(parents=True, exist_ok=True)
 
 	# 4. Move/Copy files/folders
-	# --- 4a. SPECIAL HANDLING FOR DirectXMath ---
-	if name == "DirectXMath":
+	# --- 4a. SPECIAL HANDLING FOR CryptoPP ---
+	if name == "cryptopp":
+		tmp_dir = tmp_path
+		target_root = target_path # vendor/cryptopp
+		
+		print("	Clearing old CryptoPP source files...")
+		# Clean up old source files safely, avoiding your custom CMakeLists.txt
+		for item in target_root.iterdir():
+			if item.is_file() and item.name != "CMakeLists.txt":
+				item.unlink()
+			elif item.is_dir():
+				shutil.rmtree(item, onerror=handle_remove_readonly)
+				
+		print(f"   Copying ALL files from temp to {target_root}")
+		
+		# Copy ALL contents from temp repo root into vendor/cryptopp
+		for item in tmp_dir.iterdir():
+			# Skip hidden .git directory and the repo's CMakeLists.txt (if it had one)
+			if item.name.startswith('.') or item.name == "CMakeLists.txt":
+				continue
+			
+			destination = target_root / item.name
+			
+			# Use copytree for directories and copy2 for files
+			if item.is_dir():
+				shutil.copytree(item, destination, dirs_exist_ok=True)
+			elif item.is_file():
+				shutil.copy2(item, destination)
+
+	# --- 4b. SPECIAL HANDLING FOR DirectXMath (Add 'elif' here) ---
+	elif name == "DirectXMath":
 		# Source: The 'build' subdirectory inside the temporary clone
 		source_dir = tmp_path / "build"
 		# Destination: The target directory (vendor/DirectXMath)
