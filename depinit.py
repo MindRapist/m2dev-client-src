@@ -13,7 +13,7 @@ DEPENDENCIES = [
 		"name": "cryptopp",
 		"type": "extract",
 		"repo": "https://github.com/weidai11/cryptopp",
-		"target_dir": "vendor/cryptopp/src",
+		"target_dir": "vendor/cryptopp",
 	},
 	{
 		"name": "mio",
@@ -186,45 +186,51 @@ def handle_extraction(dep):
 	# --- 4a. SPECIAL HANDLING FOR CryptoPP ---
 	if name == "cryptopp":
 		tmp_dir = tmp_path
-		target_dir = Path(dep["target_dir"]) # This is now vendor/cryptopp/src
-		target_parent = target_dir.parent    # This is now vendor/cryptopp
+		target_root = target_path # vendor/cryptopp
+		cmakelists_file = target_root / "CMakeLists.txt"
+		backup_path = Path(".tmp_cmakelists_cryptopp")
 
-		print(f"    Aggressively removing old source directory: {target_dir}")
-		if target_dir.exists():
+		# 1. BACKUP: Move your custom CMakeLists.txt to a safe location
+		if cmakelists_file.exists():
+			print("   Backing up custom CMakeLists.txt...")
 			try:
-				# Use rmtree to delete the entire 'src' folder
-				shutil.rmtree(target_dir, onerror=handle_remove_readonly)
-				print("    Old source cleanup successful.")
+				shutil.move(cmakelists_file, backup_path)
 			except Exception as e:
-				print(f"    ERROR during source cleanup for {target_dir}: {e}")
-				raise # Propagate the error to halt the script
+				print(f"   ERROR during CMakeLists.txt backup: {e}")
+				raise
 
-		# 2. Clone into a temporary directory (using existing code)
-		print(f"    Cloning into temporary directory: {tmp_path}")
-		clone_command = ["git", "clone", "--depth", "1", repo_url, str(tmp_path)]
-		run_git_command(clone_command)
-
-		# 3. Create the target directory (vendor/cryptopp/src)
-		target_dir.mkdir(parents=True, exist_ok=True)
+		# 2. AGGRESSIVE CLEANUP: Delete the entire vendor/cryptopp directory
+		print(f"    Aggressively deleting old target directory: {target_root}")
+		if target_root.exists():
+			try:
+				# Delete the whole folder with aggressive error handling
+				shutil.rmtree(target_root, onerror=handle_remove_readonly)
+				print("    Old target cleanup successful.")
+			except Exception as e:
+				print(f"   ERROR during target cleanup for {target_root}: {e}")
+				raise
 		
-		# 4. Copy Contents
-		print(f"    Copying ALL contents from temp repo to {target_dir}")
+		# 3. RESTORE & COPY: Recreate the directory and copy content
+		target_root.mkdir(parents=True, exist_ok=True)
 		
-		# Copy ALL contents from the root of the temporary clone into the target_dir
+		# Copy ALL contents from temp repo root into vendor/cryptopp
+		print(f"    Copying ALL source files to {target_root}")
 		for item in tmp_dir.iterdir():
-			# Skip hidden .git directory
+			# Skip hidden .git directory and any repo-specific CMake files
 			if item.name.startswith('.'):
 				continue
 			
-			destination = target_dir / item.name
+			destination = target_root / item.name
 			
 			if item.is_dir():
 				shutil.copytree(item, destination, dirs_exist_ok=True)
 			elif item.is_file():
 				shutil.copy2(item, destination)
 
-		# Final cleanup of the temporary directory (runs after this block)
-		return
+		# 4. RESTORE: Move the custom CMakeLists.txt back
+		if backup_path.exists():
+			print("     restoring custom CMakeLists.txt...")
+			shutil.move(backup_path, cmakelists_file)
 
 	# --- 4b. SPECIAL HANDLING FOR DirectXMath (Add 'elif' here) ---
 	elif name == "DirectXMath":
