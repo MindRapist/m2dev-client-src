@@ -662,10 +662,14 @@ bool CPythonNetworkStream::RecvPingPacket()
 	if (!Send(sizeof(TPacketCGPong), &kPacketPong))
 		return false;
 
+#ifdef FIX_SEQ_254
+	return SendSequence();
+#else
 	if (IsSecurityMode())
 		return SendSequence();
 	else
 		return true;
+#endif
 }
 
 bool CPythonNetworkStream::RecvDefaultPacket(int header)

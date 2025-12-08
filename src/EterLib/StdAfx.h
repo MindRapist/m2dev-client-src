@@ -36,6 +36,8 @@
 #include "EterBase/Debug.h"
 #include "EterLocale/CodePageId.h"
 
+#include "UserInterface/Locale_inc.h"
+
 #ifndef VC_EXTRALEAN
 #include <winsock.h>
 #endif

@@ -580,27 +580,90 @@ void CActorInstance::ShowAllAttachingEffect()
 	{
 		CEffectManager::Instance().SelectEffectInstance(it->dwEffectIndex);
 		CEffectManager::Instance().ShowEffect();
+#ifdef __ENABLE_STEALTH_FIX__
+		CEffectManager::Instance().ReleaseAlwaysHidden();
+		//CEffectManager::Instance().Update();
+#endif
 	}
 }
 
 void CActorInstance::HideAllAttachingEffect()
 {
 	std::list<TAttachingEffect>::iterator it;
-	for(it = m_AttachingEffectList.begin(); it!= m_AttachingEffectList.end();++it)
+
+	for(it = m_AttachingEffectList.begin(); it!= m_AttachingEffectList.end(); ++it)
 	{
 		CEffectManager::Instance().SelectEffectInstance(it->dwEffectIndex);
 		CEffectManager::Instance().HideEffect();
+#ifdef __ENABLE_STEALTH_FIX__
+		CEffectManager::Instance().ApplyAlwaysHidden();
+#endif
 	}
 }
+
+#ifdef __ENABLE_STEALTH_FIX__ //EXP
+void CActorInstance::HideAllAttachingEffectForEunhyeong()
+{
+	std::list<TAttachingEffect>::iterator it;
+	CEffectManager& mgr = CEffectManager::Instance();
+
+	for (it = m_AttachingEffectList.begin(); it != m_AttachingEffectList.end(); ++it)
+	{
+		mgr.SelectEffectInstance(it->dwEffectIndex);
+		DWORD crc = mgr.GetSelectedEffectDataCRC();
+		CEffectData* pData = nullptr;
+		bool isEunh = false;
+
+		if (crc != 0 && mgr.GetEffectData(crc, &pData) && pData)
+		{
+			std::string fname = pData->GetFileName();
+			std::string fnameLower = fname;
+
+			// normalize for case-insensitive search and path separators
+			for (char& c: fnameLower)
+			{
+				if (c == '\\') c = '/';
+				c = (char)tolower((unsigned char)c);
+			}
+
+			// Match any eunhyeongbeop variant (eunhyeongbeop, eunhyeongbeop_2, eunhyeongbeop_3, etc.)
+			if (fnameLower.find("eunhyeongbeop") != std::string::npos)
+				isEunh = true;
+
+			Tracef("Effect Instance %u -> file=%s crc=0x%08X\n", it->dwEffectIndex, fname.c_str(), crc);
+		}
+		else
+		{
+			Tracef("Effect Instance %u -> no effect-data (crc=0x%08X)\n", it->dwEffectIndex, crc);
+		}
+
+		// If this attaching effect is an eunhyeongbeop variant, do NOT hide it (show it).
+		if (isEunh)
+		{
+			mgr.SelectEffectInstance(it->dwEffectIndex);
+			mgr.ShowEffect();
+			mgr.ReleaseAlwaysHidden();
+
+			continue;
+		}
+
+		CEffectManager::Instance().SelectEffectInstance(it->dwEffectIndex);
+		CEffectManager::Instance().HideEffect();
+		CEffectManager::Instance().ApplyAlwaysHidden();
+	}
+}
+#endif
 
 void CActorInstance::__ClearAttachingEffect()
 {
 	m_bEffectInitialized = false;
 
 	std::list<TAttachingEffect>::iterator it;
-	for(it = m_AttachingEffectList.begin(); it!= m_AttachingEffectList.end();++it)
+
+	for(it = m_AttachingEffectList.begin(); it!= m_AttachingEffectList.end(); ++it)
 	{
 		CEffectManager::Instance().DestroyEffectInstance(it->dwEffectIndex);
 	}
+
 	m_AttachingEffectList.clear();
 }

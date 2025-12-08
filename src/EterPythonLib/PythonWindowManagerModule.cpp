@@ -1254,6 +1254,80 @@ PyObject * wndMgrSetSlotCoolTime(PyObject * poSelf, PyObject * poArgs)
 	return Py_BuildNone();
 }
 
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+PyObject* wndMgrStoreSlotCoolTime(PyObject* poSelf, PyObject* poArgs)
+{
+	UI::CWindow* pWin;
+	if (!PyTuple_GetWindow(poArgs, 0, &pWin))
+		return Py_BuildException();
+
+	int iKey;
+	if (!PyTuple_GetInteger(poArgs, 1, &iKey))
+		return Py_BuildException();
+
+	int iSlotIndex;
+	if (!PyTuple_GetInteger(poArgs, 2, &iSlotIndex))
+		return Py_BuildException();
+
+	float fCoolTime;
+	if (!PyTuple_GetFloat(poArgs, 3, &fCoolTime))
+		return Py_BuildException();
+
+	float fElapsedTime = 0.0f;
+	PyTuple_GetFloat(poArgs, 4, &fElapsedTime);
+
+	if (!pWin->IsType(UI::CSlotWindow::Type()))
+		return Py_BuildException();
+
+	UI::CSlotWindow* pSlotWin = (UI::CSlotWindow*)pWin;
+	pSlotWin->StoreSlotCoolTime(iKey, iSlotIndex, fCoolTime, fElapsedTime);
+
+	return Py_BuildNone();
+}
+
+PyObject* wndMgrRestoreSlotCoolTime(PyObject* poSelf, PyObject* poArgs)
+{
+	UI::CWindow* pWin;
+	if (!PyTuple_GetWindow(poArgs, 0, &pWin))
+		return Py_BuildException();
+
+	int iKey;
+	if (!PyTuple_GetInteger(poArgs, 1, &iKey))
+		return Py_BuildException();
+
+	if (!pWin->IsType(UI::CSlotWindow::Type()))
+		return Py_BuildException();
+
+	UI::CSlotWindow* pSlotWin = (UI::CSlotWindow*)pWin;
+	pSlotWin->RestoreSlotCoolTime(iKey);
+
+	return Py_BuildNone();
+}
+
+PyObject* wndMgrTransferSlotCoolTime(PyObject* poSelf, PyObject* poArgs)
+{
+	UI::CWindow* pWin;
+	if (!PyTuple_GetWindow(poArgs, 0, &pWin))
+		return Py_BuildException();
+
+	int iIndex1;
+	if (!PyTuple_GetInteger(poArgs, 1, &iIndex1))
+		return Py_BuildException();
+
+	int iIndex2;
+	if (!PyTuple_GetInteger(poArgs, 2, &iIndex2))
+		return Py_BuildException();
+
+	if (!pWin->IsType(UI::CSlotWindow::Type()))
+		return Py_BuildException();
+
+	UI::CSlotWindow* pSlotWin = (UI::CSlotWindow*)pWin;
+	pSlotWin->TransferSlotCoolTime(iIndex1, iIndex2);
+
+	return Py_BuildNone();
+}
+#endif
+
 PyObject * wndMgrSetToggleSlot(PyObject * poSelf, PyObject * poArgs)
 {
 	assert(!"wndMgrSetToggleSlot");
@@ -2423,6 +2497,11 @@ void initwndMgr()
 		{ "SetSlotCount",				wndMgrSetSlotCount,					METH_VARARGS },
 		{ "SetSlotCountNew",			wndMgrSetSlotCountNew,				METH_VARARGS },
 		{ "SetSlotCoolTime",			wndMgrSetSlotCoolTime,				METH_VARARGS },
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+		{ "StoreSlotCoolTime",			wndMgrStoreSlotCoolTime,			METH_VARARGS },
+		{ "RestoreSlotCoolTime",		wndMgrRestoreSlotCoolTime,			METH_VARARGS },
+		{ "TransferSlotCoolTime",		wndMgrTransferSlotCoolTime,			METH_VARARGS },
+#endif
 		{ "SetToggleSlot",				wndMgrSetToggleSlot,				METH_VARARGS },
 		{ "ActivateSlot",				wndMgrActivateSlot,					METH_VARARGS },
 		{ "DeactivateSlot",				wndMgrDeactivateSlot,				METH_VARARGS },

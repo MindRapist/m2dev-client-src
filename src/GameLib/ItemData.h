@@ -5,6 +5,7 @@
 
 #include "EterLib/GrpSubImage.h"
 #include "EterGrnLib/Thing.h"
+#include "GameType.h"
 
 class CItemData
 {

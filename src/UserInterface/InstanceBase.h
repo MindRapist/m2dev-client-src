@@ -3,6 +3,7 @@
 #include "GameLib/RaceData.h"
 #include "GameLib/ActorInstance.h"
 
+#include "StdAfx.h"
 #include "AffectFlagContainer.h"
 
 class CInstanceBase
@@ -631,6 +632,11 @@ class CInstanceBase
 		void					NEW_AttackToDestPixelPositionDirection(const TPixelPosition& c_rkPPosDst);
 		bool					NEW_AttackToDestInstanceDirection(CInstanceBase& rkInstDst, IFlyEventHandler* pkFlyHandler);
 		bool					NEW_AttackToDestInstanceDirection(CInstanceBase& rkInstDst);
+
+#ifdef FIX_POS_SYNC
+		void					ServerAttack(DWORD dwVID);
+		bool					ProcessingClientAttack(DWORD dwVID);
+#endif
 
 		bool					NEW_MoveToDestPixelPositionDirection(const TPixelPosition& c_rkPPosDst);
 		void					NEW_MoveToDestInstanceDirection(CInstanceBase& rkInstDst);

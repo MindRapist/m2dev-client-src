@@ -4,6 +4,11 @@
 #include "PythonWindow.h"
 #include "PythonSlotWindow.h"
 
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+#include "UserInterface/PythonSkill.h"
+#include "UserInterface/PythonPlayer.h"
+#endif
+
 //#define __RENDER_SLOT_AREA__
 
 using namespace UI;
@@ -203,6 +208,14 @@ void CSlotWindow::SetSlotType(DWORD dwType)
 {
 	m_dwSlotType = dwType;
 }
+
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+DWORD CSlotWindow::GetSlotType() const
+{
+	return m_dwSlotType;
+}
+#endif
+
 
 void CSlotWindow::SetSlotStyle(DWORD dwStyle)
 {
@@ -499,6 +512,7 @@ void CSlotWindow::SetSlotCountNew(DWORD dwIndex, DWORD dwGrade, DWORD dwCount)
 void CSlotWindow::SetSlotCoolTime(DWORD dwIndex, float fCoolTime, float fElapsedTime)
 {
 	TSlot * pSlot;
+
 	if (!GetSlotPointer(dwIndex, &pSlot))
 		return;
 
@@ -506,9 +520,94 @@ void CSlotWindow::SetSlotCoolTime(DWORD dwIndex, float fCoolTime, float fElapsed
 	pSlot->fStartCoolTime = CTimer::Instance().GetCurrentSecond() - fElapsedTime;
 }
 
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+void CSlotWindow::StoreSlotCoolTime(DWORD dwKey, DWORD dwSlotIndex, float fCoolTime, float fElapsedTime)
+{
+	std::map<DWORD, SStoreCoolDown>::iterator it = m_CoolDownStore[dwKey].find(dwSlotIndex);
+
+	if (it != m_CoolDownStore[dwKey].end())
+	{
+		it->second.fCoolTime = fCoolTime;
+		it->second.fElapsedTime = CTimer::Instance().GetCurrentSecond() - fElapsedTime;
+		it->second.bActive = false;
+	}
+	else
+	{
+		SStoreCoolDown m_storeCoolDown;
+
+		m_storeCoolDown.fCoolTime = fCoolTime;
+		m_storeCoolDown.fElapsedTime = CTimer::Instance().GetCurrentSecond() - fElapsedTime;
+		m_storeCoolDown.bActive = false;
+
+		m_CoolDownStore[dwKey].insert(std::map<DWORD, SStoreCoolDown>::value_type(dwSlotIndex, m_storeCoolDown));
+	}
+}
+
+void CSlotWindow::RestoreSlotCoolTime(DWORD dwKey)
+{
+	for (std::map<DWORD, SStoreCoolDown>::iterator it = m_CoolDownStore[dwKey].begin(); it != m_CoolDownStore[dwKey].end(); it++)
+	{
+		TSlot* pSlot;
+
+		if (!GetSlotPointer(it->first, &pSlot))
+			return;
+
+		pSlot->fCoolTime = it->second.fCoolTime;
+		pSlot->fStartCoolTime = it->second.fElapsedTime;
+
+		if (it->second.bActive)
+			ActivateSlot(it->first);
+		else
+			DeactivateSlot(it->first);
+	}
+}
+
+void CSlotWindow::TransferSlotCoolTime(DWORD dwIndex1, DWORD dwIndex2)
+{
+	std::map<DWORD, SStoreCoolDown>::iterator it = m_CoolDownStore[CPythonSkill::SKILL_TYPE_ACTIVE].find(dwIndex1);
+
+	if (it != m_CoolDownStore[CPythonSkill::SKILL_TYPE_ACTIVE].end())
+	{
+		TSlot* pSlot1;
+
+		if (!GetSlotPointer(dwIndex1, &pSlot1))
+			return;
+
+		TSlot* pSlot2;
+
+		if (!GetSlotPointer(dwIndex2, &pSlot2))
+			return;
+
+		// Replacing the cooldown from slot 1 to slot 2 and removing the slot 1 from the map.
+		SStoreCoolDown slotCooldown = it->second;
+
+		int iDestSkillGrade = CPythonPlayer::Instance().GetSkillGrade(dwIndex2);
+		int iDestSkillLevel = CPythonPlayer::Instance().GetSkillLevel(dwIndex2);
+
+		m_CoolDownStore[CPythonSkill::SKILL_TYPE_ACTIVE][dwIndex2] = slotCooldown;
+		m_CoolDownStore[CPythonSkill::SKILL_TYPE_ACTIVE].erase(dwIndex1);
+
+		// Removing the cooldown from the slot 1.
+		pSlot1->fCoolTime = 0;
+		pSlot1->fStartCoolTime = 0;
+
+		if (slotCooldown.bActive)
+			ActivateSlot(dwIndex2);
+
+		if (iDestSkillLevel > 0)
+		{
+			// Setting the cooldown from slot 1 to slot 2.
+			pSlot2->fCoolTime = slotCooldown.fCoolTime;
+			pSlot2->fStartCoolTime = slotCooldown.fElapsedTime;
+		}
+	}
+}
+#endif
+
 void CSlotWindow::ActivateSlot(DWORD dwIndex)
 {
 	TSlot * pSlot;
+
 	if (!GetSlotPointer(dwIndex, &pSlot))
 		return;
 
@@ -518,20 +617,36 @@ void CSlotWindow::ActivateSlot(DWORD dwIndex)
 	{
 		__CreateSlotEnableEffect();
 	}
+
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+	std::map<DWORD, SStoreCoolDown>::iterator it = m_CoolDownStore[1].find(dwIndex);
+
+	if (it != m_CoolDownStore[1].end())
+		it->second.bActive = true;
+#endif
 }
 
 void CSlotWindow::DeactivateSlot(DWORD dwIndex)
 {
 	TSlot * pSlot;
+
 	if (!GetSlotPointer(dwIndex, &pSlot))
 		return;
 
 	pSlot->bActive = FALSE;
+
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+	std::map<DWORD, SStoreCoolDown>::iterator it = m_CoolDownStore[1].find(dwIndex);
+
+	if (it != m_CoolDownStore[1].end())
+		it->second.bActive = false;
+#endif
 }
 
 void CSlotWindow::ClearSlot(DWORD dwIndex)
 {
 	TSlot * pSlot;
+
 	if (!GetSlotPointer(dwIndex, &pSlot))
 		return;
 
@@ -1262,6 +1377,17 @@ void CSlotWindow::ReserveDestroyCoolTimeFinishEffect(DWORD dwSlotIndex)
 	m_ReserveDestroyEffectDeque.push_back(dwSlotIndex);
 }
 
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+void CSlotWindow::ClearStoredSlotCoolTime(DWORD dwKey, DWORD dwSlotIndex)
+{
+	std::map<DWORD, SStoreCoolDown>& store = m_CoolDownStore[dwKey];
+	std::map<DWORD, SStoreCoolDown>::iterator it = store.find(dwSlotIndex);
+	
+	if (it != store.end())
+		store.erase(it);
+}
+#endif
+
 DWORD CSlotWindow::Type()
 {
 	static int s_Type = GetCRC32("CSlotWindow", strlen("CSlotWindow"));
@@ -1382,6 +1508,11 @@ void CSlotWindow::__Initialize()
 	m_dwSlotType = 0;
 	m_dwSlotStyle = SLOT_STYLE_PICK_UP;
 	m_dwToolTipSlotNumber = SLOT_NUMBER_NONE;
+
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+	m_CoolDownStore.clear();
+#endif
+
 
 	m_isUseMode = FALSE;
 	m_isUsableItem = FALSE;

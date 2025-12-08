@@ -27,7 +27,11 @@ class CPythonPlayerEventHandler : public CActorInstance::IEventHandler
 		virtual void OnUseSkill(const SState& c_rkState, UINT uMotSkill, UINT uArg);
 		virtual void OnUpdate();
 		virtual void OnChangeShape();
+#ifdef FIX_POS_SYNC
+		virtual void OnHit(UINT uSkill, CActorInstance& rkActorVictim, BOOL isSendPacket, CActorInstance::BlendingPosition* sBlending);
+#else
 		virtual void OnHit(UINT uSkill, CActorInstance& rkActorVictim, BOOL isSendPacket);
+#endif
 
 		void FlushVictimList();
 

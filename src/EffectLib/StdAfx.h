@@ -14,6 +14,8 @@
 
 #include "AudioLib/StdAfx.h"
 
+#include "UserInterface/Locale_inc.h"
+
 /*
 #include "FrameController.h"
 

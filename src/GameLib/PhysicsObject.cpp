@@ -107,6 +107,32 @@ void CPhysicsObject::IncreaseExternalForce(const D3DXVECTOR3 & c_rvBasePosition,
 	}
 }
 
+#ifdef FIX_POS_SYNC
+void CPhysicsObject::SetLastPosition(const TPixelPosition& c_rPosition, const TPixelPosition& c_rDeltaPosition, float fBlendingTime)
+{
+	m_v3FinalPosition.x = float(c_rPosition.x + c_rDeltaPosition.x);
+	m_v3FinalPosition.y = float(c_rPosition.y + c_rDeltaPosition.y);
+	m_v3FinalPosition.z = float(c_rPosition.z + c_rDeltaPosition.z);
+	m_v3DeltaPosition.x = float(c_rDeltaPosition.x);
+	m_v3DeltaPosition.y = float(c_rDeltaPosition.y);
+	m_v3DeltaPosition.z = float(c_rDeltaPosition.z);
+	m_xPushingPosition.Setup(0.0f, c_rDeltaPosition.x, fBlendingTime);
+	m_yPushingPosition.Setup(0.0f, c_rDeltaPosition.y, fBlendingTime);
+}
+void CPhysicsObject::GetFinalPosition(TPixelPosition* pPosition)
+{
+	pPosition->x = (m_v3FinalPosition.x);
+	pPosition->y = (m_v3FinalPosition.y);
+	pPosition->z = (m_v3FinalPosition.z);
+}
+
+void CPhysicsObject::GetDeltaPosition(TPixelPosition* pPosition)
+{
+	pPosition->x = (m_v3DeltaPosition.x);
+	pPosition->y = (m_v3DeltaPosition.y);
+	pPosition->z = (m_v3DeltaPosition.z);
+}
+#else
 void CPhysicsObject::SetLastPosition(const TPixelPosition & c_rPosition, float fBlendingTime)
 {
 	m_v3LastPosition.x = float(c_rPosition.x);
@@ -115,6 +141,7 @@ void CPhysicsObject::SetLastPosition(const TPixelPosition & c_rPosition, float f
 	m_xPushingPosition.Setup(0.0f, c_rPosition.x, fBlendingTime);
 	m_yPushingPosition.Setup(0.0f, c_rPosition.y, fBlendingTime);
 }
+#endif
 
 void CPhysicsObject::GetLastPosition(TPixelPosition * pPosition)
 {

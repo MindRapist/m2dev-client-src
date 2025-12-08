@@ -259,8 +259,8 @@ struct SLOCALEDATA
 	const char*	szSecurityKey;
 } gs_stLocaleData[] = {
 	{ LSS_YMIR,		"ymir",			949,	"testtesttesttest"	},		// Korea
-	{ LSS_EUROPE,	"de",			1252,	"1234abcd5678efgh"	},		// GameForge (Germany)
 	{ LSS_EUROPE,	"en",			1252,	"1234abcd5678efgh"	},		// GameForge (United Kingdom)
+	{ LSS_EUROPE,	"de",			1252,	"1234abcd5678efgh"	},		// GameForge (Germany)
 	{ LSS_EUROPE,	"us",			1252,	"1234abcd5678efgh"	},		// GameForge (USA)
 	{ LSS_EUROPE,	"es",			1252,	"1234abcd5678efgh"	},		// GameForge (Spain)
 	{ LSS_EUROPE,	"it",			1252,	"1234abcd5678efgh"	},		// GameForge (Italy)

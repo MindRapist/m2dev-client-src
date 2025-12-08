@@ -57,6 +57,12 @@ class CGraphicObjectInstance : public CGraphicCollisionObject
 		void					Hide();
 		bool					isShow();
 
+#ifdef __ENABLE_STEALTH_FIX__
+		void					ApplyAlwaysHidden();
+		void					ReleaseAlwaysHidden();
+#endif
+
+
 		// Camera Block
 		void					BlockCamera(bool bBlock) {m_BlockCamera = bBlock;}
 		bool					BlockCamera() { return m_BlockCamera; }
@@ -109,6 +115,10 @@ class CGraphicObjectInstance : public CGraphicCollisionObject
 		D3DXMATRIX				m_mRotation;
 
 		bool					m_isVisible;
+#ifdef __ENABLE_STEALTH_FIX__
+		bool					m_isAlwaysHidden;
+#endif
+
 		D3DXMATRIX				m_worldMatrix;
 
 		// Camera Block

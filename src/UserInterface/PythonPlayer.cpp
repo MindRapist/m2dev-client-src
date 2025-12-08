@@ -532,6 +532,42 @@ void CPythonPlayer::NotifyChangePKMode()
 	PyCallClassMemberFunc(m_ppyGameWindow, "OnChangePKMode", Py_BuildValue("()"));
 }
 
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+void CPythonPlayer::ResetSkillCoolTimes()
+{
+	for (int i = 0; i < SKILL_MAX_NUM; ++i)
+		ResetSkillCoolTimeForSlot(i);
+}
+
+void CPythonPlayer::ResetSkillCoolTimeForSlot(DWORD dwSlotIndex)
+{
+	// Require skill-group to be present (same check as original global implementation)
+	if (!CPythonNetworkStream::Instance().GetMainActorSkillGroup())
+		return;
+
+	if (dwSlotIndex >= SKILL_MAX_NUM)
+		return;
+
+	TSkillInstance& rkSkillInst = m_playerStatus.aSkill[dwSlotIndex];
+
+	// If this skill is a toggle and currently active, deactivate it so UI/state is consistent.
+	// __DeactivateSkillSlot is a private/protected helper on this class.
+	if (IsToggleSkill(dwSlotIndex) && IsSkillActive(dwSlotIndex))
+		__DeactivateSkillSlot(dwSlotIndex);
+
+	// If nothing to clear, skip
+	if (!rkSkillInst.fLastUsedTime && !rkSkillInst.fCoolTime)
+		return;
+
+	// Clear cooldown timers
+	rkSkillInst.fLastUsedTime = rkSkillInst.fCoolTime = 0.0f;
+
+	UI::CWindowManager::Instance().ClearStoredSlotCoolTimeInAllSlotWindows(CPythonSkill::SKILL_TYPE_ACTIVE, dwSlotIndex);
+
+	// Inform Python/UI which slot was cleared (SkillClearCoolTime expects the slot index)
+	PyCallClassMemberFunc(m_ppyGameWindow, "SkillClearCoolTime", Py_BuildValue("(i)", (int)dwSlotIndex));
+}
+#endif
 
 void CPythonPlayer::MoveItemData(TItemPos SrcCell, TItemPos DstCell)
 {
@@ -993,6 +1029,7 @@ void CPythonPlayer::SetSkillLevel(DWORD dwSlotIndex, DWORD dwSkillLevel)
 void CPythonPlayer::SetSkillLevel_(DWORD dwSkillIndex, DWORD dwSkillGrade, DWORD dwSkillLevel)
 {
 	DWORD dwSlotIndex;
+
 	if (!GetSkillSlotIndex(dwSkillIndex, &dwSlotIndex))
 		return;
 
@@ -1004,39 +1041,46 @@ void CPythonPlayer::SetSkillLevel_(DWORD dwSkillIndex, DWORD dwSkillGrade, DWORD
 		case 0:
 			m_playerStatus.aSkill[dwSlotIndex].iGrade = dwSkillGrade;
 			m_playerStatus.aSkill[dwSlotIndex].iLevel = dwSkillLevel;
+
 			break;
 		case 1:
 			m_playerStatus.aSkill[dwSlotIndex].iGrade = dwSkillGrade;
-			m_playerStatus.aSkill[dwSlotIndex].iLevel = dwSkillLevel-20+1;
+			m_playerStatus.aSkill[dwSlotIndex].iLevel = dwSkillLevel - 20 + 1;
+
 			break;
 		case 2:
 			m_playerStatus.aSkill[dwSlotIndex].iGrade = dwSkillGrade;
-			m_playerStatus.aSkill[dwSlotIndex].iLevel = dwSkillLevel-30+1;
+			m_playerStatus.aSkill[dwSlotIndex].iLevel = dwSkillLevel - 30 + 1;
+
 			break;
 		case 3:
 			m_playerStatus.aSkill[dwSlotIndex].iGrade = dwSkillGrade;
-			m_playerStatus.aSkill[dwSlotIndex].iLevel = dwSkillLevel-40+1;
+			m_playerStatus.aSkill[dwSlotIndex].iLevel = dwSkillLevel - 40 + 1;
+
 			break;
 	}
 
 	const DWORD SKILL_MAX_LEVEL = 40;
 
-
-
-
-
-	if (dwSkillLevel>SKILL_MAX_LEVEL)
+	if (dwSkillLevel > SKILL_MAX_LEVEL)
 	{
 		m_playerStatus.aSkill[dwSlotIndex].fcurEfficientPercentage = 0.0f;
 		m_playerStatus.aSkill[dwSlotIndex].fnextEfficientPercentage = 0.0f;
 
 		TraceError("CPythonPlayer::SetSkillLevel(SlotIndex=%d, SkillLevel=%d)", dwSlotIndex, dwSkillLevel);
+
 		return;
 	}
 
-	m_playerStatus.aSkill[dwSlotIndex].fcurEfficientPercentage	= LocaleService_GetSkillPower(dwSkillLevel)/100.0f;
-	m_playerStatus.aSkill[dwSlotIndex].fnextEfficientPercentage = LocaleService_GetSkillPower(dwSkillLevel+1)/100.0f;
-
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+	if (m_playerStatus.aSkill[dwSlotIndex].iLevel <= 0)
+	{
+		ResetSkillCoolTimeForSlot(dwSlotIndex);
+	}
+#endif
+	
+	m_playerStatus.aSkill[dwSlotIndex].fcurEfficientPercentage	= LocaleService_GetSkillPower(dwSkillLevel) / 100.0f;
+	m_playerStatus.aSkill[dwSlotIndex].fnextEfficientPercentage = LocaleService_GetSkillPower(dwSkillLevel + 1) / 100.0f;
 }
 
 void CPythonPlayer::SetSkillCoolTime(DWORD dwSkillIndex)
@@ -1568,7 +1612,11 @@ void CPythonPlayer::NEW_ClearSkillData(bool bAll)
 
 	for (it = m_skillSlotDict.begin(); it != m_skillSlotDict.end();)
 	{
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+		if (__GetSkillType(it->first) == CPythonSkill::SKILL_TYPE_ACTIVE)
+#else
 		if (bAll || __GetSkillType(it->first) == CPythonSkill::SKILL_TYPE_ACTIVE)
+#endif
 			it = m_skillSlotDict.erase(it);
 		else
 			++it;
@@ -1576,15 +1624,48 @@ void CPythonPlayer::NEW_ClearSkillData(bool bAll)
 
 	for (int i = 0; i < SKILL_MAX_NUM; ++i)
 	{
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+		DWORD dwSkillIndex = m_playerStatus.aSkill[i].dwIndex;
+		CPythonSkill::TSkillData* pSkillData = NULL;
+
+		// Skip empty slots or unknown skills
+		if (dwSkillIndex == 0 || !CPythonSkill::Instance().GetSkillData(dwSkillIndex, &pSkillData))
+			continue;
+
+		if (pSkillData->byType != CPythonSkill::SKILL_TYPE_ACTIVE)
+			continue;
+#endif
 		ZeroMemory(&m_playerStatus.aSkill[i], sizeof(TSkillInstance));
 	}
 
 	for (int j = 0; j < SKILL_MAX_NUM; ++j)
 	{
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+		DWORD dwSkillIndex = m_playerStatus.aSkill[j].dwIndex;
+		CPythonSkill::TSkillData* pSkillData = NULL;
+
+		// Skip empty slots or unknown skills
+		if (dwSkillIndex == 0 || !CPythonSkill::Instance().GetSkillData(dwSkillIndex, &pSkillData))
+			continue;
+
+		// Only operate on active-type skills
+		if (pSkillData->byType != CPythonSkill::SKILL_TYPE_ACTIVE)
+			continue;
+#endif
+
 		// 2004.09.30.myevan.스킬갱신시 스킬 포인트업[+] 버튼이 안나와 처리
 		m_playerStatus.aSkill[j].iGrade = 0;
-		m_playerStatus.aSkill[j].fcurEfficientPercentage=0.0f;
-		m_playerStatus.aSkill[j].fnextEfficientPercentage=0.05f;
+		m_playerStatus.aSkill[j].fcurEfficientPercentage = 0.0f;
+		m_playerStatus.aSkill[j].fnextEfficientPercentage = 0.05f;
+
+#ifdef FIX_REFRESH_SKILL_COOLDOWN
+		m_playerStatus.aSkill[j].isCoolTime = false;
+		m_playerStatus.aSkill[j].fCoolTime = 0.0f;
+		m_playerStatus.aSkill[j].fLastUsedTime = 0.0f;
+
+		//ResetSkillCoolTimeForSlot(j);
+		UI::CWindowManager::Instance().ClearStoredSlotCoolTimeInAllSlotWindows(CPythonSkill::SKILL_TYPE_ACTIVE, j);
+#endif
 	}
 
 	if (m_ppyGameWindow)
