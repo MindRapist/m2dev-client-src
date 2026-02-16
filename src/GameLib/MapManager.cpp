@@ -251,12 +251,14 @@ void CMapManager::BeginEnvironment()
 		DWORD dwFogColor = mc_pcurEnvironmentData->FogColor;
 		STATEMANAGER.SetRenderState(D3DRS_FOGCOLOR, dwFogColor);
 
-		if (mc_pcurEnvironmentData->bDensityFog)
+		// Fog update
+		if (mc_pcurEnvironmentData->bDensityFog && mc_pcurEnvironmentData->bFogLevel != 0)
 		{
-			float fDensity = 0.00015f;
+			float fDensity = mc_pcurEnvironmentData->bFogLevel * 0.000010f;
 			STATEMANAGER.SetRenderState(D3DRS_FOGVERTEXMODE, D3DFOG_EXP);					// pixel fog
 			STATEMANAGER.SetRenderState(D3DRS_FOGDENSITY, *((DWORD *) &fDensity));			// vertex fog
 		}
+		// END OF Fog update
 		else
 		{
 			CSpeedTreeForestDirectX8& rkForest=CSpeedTreeForestDirectX8::Instance();

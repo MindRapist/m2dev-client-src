@@ -89,13 +89,17 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 
 	SelectIndexBuffer(0, &wPrimitiveCount, &ePrimitiveType);
 
-	DWORD dwFogEnable = STATEMANAGER.GetRenderState(D3DRS_FOGENABLE);
+	// Fog update
+	// DWORD dwFogEnable = STATEMANAGER.GetRenderState(D3DRS_FOGENABLE);
+	// END OF Fog update
 	std::vector<std::pair<float, long> >::iterator it = m_PatchVector.begin();
 
 	// NOTE: 맵툴에서는 view ~ fog near 사이의 지형을 fog disabled 상태로 그리는 작업을 하지 않음.
-	STATEMANAGER.SetRenderState(D3DRS_FOGENABLE, FALSE);
+	// Fog update
+	// STATEMANAGER.SetRenderState(D3DRS_FOGENABLE, FALSE);
+	// END OF Fog update
 
-	for( ; it != near_it; ++it)
+	for(; it != near_it; ++it)
 	{
 		if (byCUrrentLODLevel == 0 && fLODLevel1Distance <= it->first)
 		{
@@ -109,6 +113,7 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 		}
 		
 		__HardwareTransformPatch_RenderPatchSplat(it->second, wPrimitiveCount, ePrimitiveType);
+
 		if (m_iRenderedSplatNum >= m_iSplatLimit)
 			break;
 		
@@ -116,7 +121,9 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 			DrawWireFrame(it->second, wPrimitiveCount, ePrimitiveType);
 	}
 
-	STATEMANAGER.SetRenderState(D3DRS_FOGENABLE, dwFogEnable);
+	// Fog update
+	// STATEMANAGER.SetRenderState(D3DRS_FOGENABLE, dwFogEnable);
+	// END OF Fog update
 
 	if (m_iRenderedSplatNum < m_iSplatLimit)
 	{
@@ -143,7 +150,9 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 		}
 	}
 
-	STATEMANAGER.SetRenderState(D3DRS_FOGENABLE, FALSE);
+	// Fog update
+	// STATEMANAGER.SetRenderState(D3DRS_FOGENABLE, FALSE);
+	// END OF Fog update
 	STATEMANAGER.SetRenderState(D3DRS_LIGHTING, FALSE);
 
 	STATEMANAGER.SetTexture(0, NULL);
@@ -195,7 +204,9 @@ void CMapOutdoor::__RenderTerrain_RenderHardwareTransformPatch()
 	STATEMANAGER.SetTextureStageState(1, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
 	STATEMANAGER.SetTextureStageState(1, D3DTSS_ALPHAOP,   D3DTOP_SELECTARG1);
 
-	STATEMANAGER.SetRenderState(D3DRS_FOGENABLE, dwFogEnable);
+	// Fog update
+	// STATEMANAGER.SetRenderState(D3DRS_FOGENABLE, dwFogEnable);
+	// END OF Fog update
 	STATEMANAGER.SetRenderState(D3DRS_LIGHTING, TRUE);
 
 	std::sort(m_RenderedTextureNumVector.begin(),m_RenderedTextureNumVector.end());
